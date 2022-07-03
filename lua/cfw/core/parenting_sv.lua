@@ -10,6 +10,7 @@ hook.Add("Initialize", "CFW", function()
             setParent(self, parent, newAttach, ...)
 
             -- Contraption framework doesn't care about attachments, so we short circuit here if it's just an attachmentID change
+            if self._cfwRemoved then return end -- Removed by an undo
             if oldParent == parent and oldAttach ~= newAttach then return end
             if IsValid(parent) and parent:GetClass() == "predicted_viewmodel" then return end
 
