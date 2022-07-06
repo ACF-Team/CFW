@@ -1,7 +1,7 @@
 -- Tracks the total mass of a contraption
 
 hook.Add("cfw.contraption.created", "CFW_Mass", function(con)
-    con.mass = 0
+    con.totalMass = 0
 end)
 
 hook.Add("cfw.contraption.entityAdded", "CFW_Mass", function(con, ent)
@@ -10,8 +10,8 @@ hook.Add("cfw.contraption.entityAdded", "CFW_Mass", function(con, ent)
     if IsValid(obj) then
         local mass = obj:GetMass()
 
-        ent._mass = mass
-        con.mass  = con.mass + mass
+        ent._mass     = mass
+        con.totalMass = con.totalMass + mass
     end
 end)
 
@@ -19,7 +19,7 @@ hook.Add("cfw.contraption.entityRemoved", "CFW_Mass", function(con, ent)
     local obj = ent:GetPhysicsObject()
 
     if IsValid(obj) then
-        con.mass = con.mass - obj:GetMass()
+        con.totalMass = con.totalMass - obj:GetMass()
     end
 end)
 
@@ -38,7 +38,7 @@ hook.Add("Initialize", "CFW_Mass", function()
         local con = self:GetEntity():GetContraption()
 
         if con then
-            con.mass = con.mass + (newMass - oldMass)
+            con.totalMass = con.totalMass + (newMass - oldMass)
         end
     end
 

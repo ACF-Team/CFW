@@ -46,7 +46,7 @@ hook.Add("Tick", "testarino", function()
 
         debugoverlay.Line(point, above, 0.03, con.color, true)
         debugoverlay.Text(above + Vector(0, 0, 3), tostring(con), 0.03, true)
-        debugoverlay.Text(above + Vector(0, 0, 6), "Mass: " .. math.Round(con.mass, 0), 0.03, true)
+        debugoverlay.Text(above + Vector(0, 0, 6), "Mass: " .. math.Round(con.totalMass, 0), 0.03, true)
 
         con:GetAABB()
         
