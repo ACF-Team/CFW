@@ -56,7 +56,6 @@ function CFW.connect(a, b)
 end
 
 function CFW.disconnect(a, b)
-    print(a, b)
     -- Called when a connection is removed between two entities (constraint, parent, etc.)
     -- Reduce the link counter on their shared link
 

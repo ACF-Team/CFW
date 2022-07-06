@@ -44,22 +44,29 @@ hook.Add("PreUndo", "cfw.undo", function(undo)
         local alreadyRemoved = {}
 
         for _, ent in ipairs(undo.Entities) do
-            ent._cfwRemoved = true -- For parents
+            local contraption = ent:GetContraption()
 
-            if ent.Constraints then
-                for _, con in ipairs(ent.Constraints) do
-                    if isConstraint[con:GetClass()] then
-                        con:RemoveCallOnRemove("CFW")
+            if contraption then
+                -- Remove callbacks from constraints
+                if ent.Constraints then
+                    for _, con in ipairs(ent.Constraints) do
+                        if isConstraint[con:GetClass()] then
+                            con:RemoveCallOnRemove("CFW")
+                        end
                     end
                 end
-            end
 
-            local c = ent:GetContraption()
+                if not alreadyRemoved[contraption] then
+                    -- Mark all entities, including those not in the dupe, as already removed
+                    -- This takes care of holograms and such
+                    for ent in pairs(contraption.ents) do
+                        ent._cfwRemoved = true
+                    end
 
-            if c and not alreadyRemoved[c] then
-                alreadyRemoved[c] = true
-
-                c:Remove()
+                    -- Then remove the contraption
+                    alreadyRemoved[contraption] = true
+                    contraption:Remove()
+                end
             end
         end
     end
