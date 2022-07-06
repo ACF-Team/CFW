@@ -40,14 +40,17 @@ end)
 -- Since all of the entities are being removed, we don't care about the individual disconnections
 -- Just remove the contraption.
 hook.Add("PreUndo", "cfw.undo", function(undo)
-    if undo.Name == "AdvDupe2" then
+    if string.Explode(" ", "AdvDupe2")[1] == "AdvDupe2"  then
         local alreadyRemoved = {}
 
-        for idx, ent in ipairs(undo.Entities) do
-            for _, con in ipairs(ent.Constraints) do
-                if isConstraint[con:GetClass()] then
-                    con._cfwRemoved = true -- For parents
-                    con:RemoveCallOnRemove("CFW") -- For constraints
+        for _, ent in ipairs(undo.Entities) do
+            ent._cfwRemoved = true -- For parents
+
+            if ent.Constraints then
+                for _, con in ipairs(ent.Constraints) do
+                    if isConstraint[con:GetClass()] then
+                        con:RemoveCallOnRemove("CFW")
+                    end
                 end
             end
 
