@@ -1,10 +1,10 @@
 -- Tracks the total mass of a contraption
 
-hook.Add("CFW_ContraptionInit", "CFW_Mass", function(con)
+hook.Add("cfw.contraption.created", "CFW_Mass", function(con)
     con.mass = 0
 end)
 
-hook.Add("CFW_ContraptionAppended", "CFW_Mass", function(con, ent)
+hook.Add("cfw.contraption.entityAdded", "CFW_Mass", function(con, ent)
     local obj = ent:GetPhysicsObject()
 
     if IsValid(obj) then
@@ -15,7 +15,7 @@ hook.Add("CFW_ContraptionAppended", "CFW_Mass", function(con, ent)
     end
 end)
 
-hook.Add("CFW_ContraptionPopped", "CFW_Mass", function(con, ent)
+hook.Add("cfw.contraption.entityRemoved", "CFW_Mass", function(con, ent)
     local obj = ent:GetPhysicsObject()
 
     if IsValid(obj) then

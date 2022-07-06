@@ -42,7 +42,7 @@ do -- Class def
 
     function CLASS:Init()
         CFW.contraptions[self] = true
-        hook.Run("CFW_ContraptionInit", self)
+        hook.Run("cfw.contraption.created", self)
     end
 
     function CLASS:Merge(other)
@@ -61,7 +61,7 @@ do -- Class def
         ent:SetColor(Color(math.Clamp(self.color.r + math.Rand(-20, 20), 0, 255), math.Clamp(self.color.g + math.Rand(-20, 20), 0, 255), math.Clamp(self.color.b + math.Rand(-20, 20), 0, 255)))
         ent:SetMaterial("models/debug/debugwhite")
 
-        hook.Run("CFW_ContraptionAppended", self, ent)
+        hook.Run("cfw.contraption.entityAdded", self, ent)
     end
 
     function CLASS:Sub(ent)
@@ -72,18 +72,18 @@ do -- Class def
         ent:SetColor(Color(255, 255, 255))
         ent:SetMaterial("")
 
-        hook.Run("CFW_ContraptionPopped", self, ent)
+        hook.Run("cfw.contraption.entityRemoved", self, ent)
 
         if not next(self.ents) then
             self:Remove()
         end
     end
 
-    function CLASS:Remove(merged)
-        if merged then
-            hook.Run("CFW_ContraptionMerged", self, merged)
+    function CLASS:Remove(mergedInto)
+        if mergedInto then
+            hook.Run("cfw.contraption.merged", self, mergedInto)
         else
-            hook.Run("CFW_ContraptionRemoved", self)
+            hook.Run("cfw.contraption.removed", self)
         end
 
         CFW.contraptions[self] = nil

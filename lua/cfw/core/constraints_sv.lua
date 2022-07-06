@@ -19,7 +19,7 @@ end
 -- https://github.com/Facepunch/garrysmod/blob/master/garrysmod/lua/includes/modules/constraint.lua#L449
 -- Any data stored in the same tick the constraint is created will be removed. Thus, we delay for one tick
 -- This also conveniently prevents CFW from responding to constraints created and removed in the same tick
-hook.Add("OnEntityCreated", "CFW", function(con)
+hook.Add("OnEntityCreated", "cfw.entityCreated", function(con)
     if isConstraint[con:GetClass()] then
         timerSimple(0, function()
             if IsValid(con)then
@@ -39,7 +39,7 @@ end)
 -- Elastics and Hydraulics break during undos for some reason. This is a workaround.
 -- Since all of the entities are being removed, we don't care about the individual disconnections
 -- Just remove the contraption.
-hook.Add("PreUndo", "CFW.undo", function(undo)
+hook.Add("PreUndo", "cfw.undo", function(undo)
     if undo.Name == "AdvDupe2" then
         local alreadyRemoved = {}
 
