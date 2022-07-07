@@ -2,7 +2,6 @@
 -- These are used to keep track of the number of connections between two entities
 -- In graph theory these are edges
 
-CFW.links        = {}
 CFW.classes.link = {}
 
 function CFW.createLink(a, b)
@@ -31,8 +30,6 @@ do -- Class def
     CLASS.__index = CLASS -- why?
 
     function CLASS:Init()
-        CFW.links[self] = true
-
         return link
     end
 
@@ -51,29 +48,29 @@ do -- Class def
     end
 
     function CLASS:Remove()
-        local dirtyBreak = true -- If both entities on the link have other links, it's a "dirty break"
+        -- A clean break occurs when either entity no longer has any other links and there's no need
+        -- to check for indirect connections
+        local cleanBreak = false
         local a, b = self.a, self.b
-
-        CFW.links[self] = nil
 
         a._links[b] = nil
         b._links[a] = nil
 
         if not next(a._links) then
             a._links = nil
-            b:GetContraption():Sub(a)
+            a:GetContraption():Sub(a)
 
-            dirtyBreak = false
+            cleanBreak = true
         end
 
         if not next(b._links) then
             b._links = nil
             b:GetContraption():Sub(b)
 
-            dirtyBreak = false
+            cleanBreak = true
         end
         
-        return dirtyBreak
+        return cleanBreak
     end
 end
 

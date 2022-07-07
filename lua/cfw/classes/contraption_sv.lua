@@ -3,7 +3,7 @@
 CFW.contraptions        = {}
 CFW.classes.contraption = {}
 
-function CFW.createContraption(...)
+function CFW.createContraption()
     local con  = {
         ents  = {},
         count = 0,
@@ -13,16 +13,6 @@ function CFW.createContraption(...)
     setmetatable(con, CFW.classes.contraption)
 
     con:Init()
-
-    if istable(...) then
-        for ent in pairs(...) do
-            con:Add(ent)
-        end
-    else
-        for _, ent in ipairs({...}) do
-            con:Add(ent)
-        end
-    end
 
     return con
 end

@@ -1,13 +1,15 @@
-
 local function floodFill(source, sink)
-    local closed = {[source] = true}
-    local open   = source:GetLinks()
+    local closed       = {[source] = true}
+    local closedCount  = 0
+    local open         = source:GetLinks()
 
     while next(open) do
         local node = next(open)
 
         open[node]   = nil
         closed[node] = true
+
+        closedCount = closedCount + 1
 
         if node == sink then return true, closed end
 
@@ -18,7 +20,7 @@ local function floodFill(source, sink)
         end
     end
 
-    return false, closed
+    return false, closed, closedCount
 end
 
 function CFW.connect(a, b)
@@ -38,46 +40,47 @@ function CFW.connect(a, b)
         local ac, bc = a:GetContraption(), b:GetContraption()
 
         if ac and bc then
-            if ac ~= bc then -- Two DIFFERENT contraptions ( MERGE ) 
+            if ac ~= bc then -- Two DIFFERENT contraptions
                 if ac.count > bc.count then
                     ac:Merge(bc)
                 else
                     bc:Merge(ac)
                 end
             end
-        elseif ac then -- Only contraption A ( ADD )
+        elseif ac then -- Only contraption A
             ac:Add(b)
-        elseif bc then -- Only contraption B ( ADD )
+        elseif bc then -- Only contraption B
             bc:Add(a)
         else -- No contraption ( CREATE )
-            CFW.createContraption(a, b)
+            local newContraption = CFW.createContraption()
+            
+            newContraption:Add(a)
+            newContraption:Add(b)
         end
     end
 end
 
 function CFW.disconnect(a, b)
-    -- Called when a connection is removed between two entities (constraint, parent, etc.)
-    -- Reduce the link counter on their shared link
+    print(a, b)
 
-    if a:GetLink(b):Sub() then
-        -- LINK:Sub returns TRUE on a dirty break
-        -- If dirty break, check for indirect connections
-    
-        local connected, list = floodFill(a, b)
+    local link       = a:GetLink(b)
+    local cleanBreak = link:Sub()
 
-        if not connected then
-            -- The ents are not connected anymore meaning there are now two separate contraptions
-            -- TODO: Make this move the LEAST amount of ents possible
+    if cleanBreak then return end
 
-            -- Remove the collected ents from their current contraption
-            local oldCon = a:GetContraption()
+    local directlyConnected, floodedEnts, floodedCount = floodFill(a, b)
 
-            for ent in pairs(list) do
-                oldCon:Sub(ent)
-            end
+    if directlyConnected then return end
 
-            -- Add them back to a new contraption
-            CFW.createContraption(list)
-        end
+    local parentContraption, childContraption = a:GetContraption(), CFW.createContraption()
+
+    -- We want to move the least amount of things around, swap the order if necessary
+    if parentContraption.count < floodedCount then parentContraption, childContraption = childContraption, parentContraption end
+
+    for ent in pairs(floodedEnts) do
+        parentContraption:Sub(ent)
+        childContraption:Add(ent)
     end
+
+    hook.Run("cfw.contraption.split", parentContraption, childContraption)
 end
