@@ -48,9 +48,6 @@ do -- Class def
         self.ents[ent]   = true
         self.count       = self.count + 1
 
-        ent:SetColor(Color(math.Clamp(self.color.r + math.Rand(-20, 20), 0, 255), math.Clamp(self.color.g + math.Rand(-20, 20), 0, 255), math.Clamp(self.color.b + math.Rand(-20, 20), 0, 255)))
-        ent:SetMaterial("models/debug/debugwhite")
-
         hook.Run("cfw.contraption.entityAdded", self, ent)
     end
 
@@ -58,9 +55,6 @@ do -- Class def
         ent._contraption = nil
         self.ents[ent]   = nil
         self.count       = self.count - 1
-        
-        ent:SetColor(Color(255, 255, 255))
-        ent:SetMaterial("")
 
         hook.Run("cfw.contraption.entityRemoved", self, ent)
 
