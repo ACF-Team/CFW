@@ -50,7 +50,7 @@ hook.Add("PreUndo", "cfw.undo", function(undo)
                 -- Remove callbacks from constraints
                 if ent.Constraints then
                     for _, con in ipairs(ent.Constraints) do
-                        if isConstraint[con:GetClass()] then
+                        if IsValid(con) and isConstraint[con:GetClass()] then
                             con:RemoveCallOnRemove("CFW")
                         end
                     end
