@@ -61,8 +61,6 @@ function CFW.connect(a, b)
 end
 
 function CFW.disconnect(a, b)
-    print(a, b)
-
     local link       = a:GetLink(b)
     local cleanBreak = link:Sub()
 

@@ -12,7 +12,30 @@ local isConstraint = {
 }
 
 local function onRemove(con)
-    disconnect(con.Ent1, con.Ent2 or con.Ent4)
+    local a, b = con.Ent1, con.Ent2 or con.Ent4
+
+    if not IsValid(a) or not IsValid(b) then
+        -- This shouldn't have happened
+        -- Error and destroy the contraption
+        ErrorNoHaltWithStack()
+        print("Constriant Type: " .. con.Type)
+        print("Ent1", con.Ent1)
+        print("Ent2", con.Ent2)
+        
+        local contraption = (IsValid(a) and a or IsValid(b) and b):GetContraption()
+
+        for ent in pairs(contraption) do
+            if IsValid(ent) then
+                contraption:Sub(ent)
+            end
+        end
+
+        if not contraption._removed then contraption:Remove() end
+
+        return
+    end
+
+    disconnect(a, b)
 end
 
 -- This is a dumb hack necessitated by SetTable being called on constraints immediately after they are created

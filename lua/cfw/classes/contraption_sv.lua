@@ -64,6 +64,8 @@ do -- Class def
     end
 
     function CLASS:Remove(mergedInto)
+        self._removed = true
+
         if mergedInto then
             hook.Run("cfw.contraption.merged", self, mergedInto)
         else
