@@ -14,8 +14,8 @@ hook.Add("Initialize", "CFW", function()
 
             if self._cfwRemoved then return end -- Removed by an undo
             if oldParent == parent and oldAttach ~= newAttach then return end
-            if IsValid(parent) and parent:GetClass() == "predicted_viewmodel" then return end
-
+            if self:GetClass() == "gmod_hands" then return end
+        
             if IsValid(oldParent) then disconnect(self, oldParent, isParent) end
             if IsValid(parent) then connect(self, parent, isParent) end
         end
