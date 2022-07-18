@@ -18,19 +18,13 @@ local function onRemove(con)
         -- This shouldn't have happened
         -- Error and destroy the contraption
         ErrorNoHaltWithStack()
-        print("Constriant Type: " .. con.Type)
+        print("Constraint Type: " .. con.Type)
         print("Ent1", con.Ent1)
         print("Ent2", con.Ent2)
         
         local contraption = (IsValid(a) and a or IsValid(b) and b):GetContraption()
 
-        for ent in pairs(contraption) do
-            if IsValid(ent) then
-                contraption:Sub(ent)
-            end
-        end
-
-        if not contraption._removed then contraption:Remove() end
+        contraption:Defuse()
 
         return
     end

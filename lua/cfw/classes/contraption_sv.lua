@@ -74,4 +74,14 @@ do -- Class def
 
         CFW.contraptions[self] = nil
     end
+
+    function CLASS:Defuse()
+        for ent in pairs(self.ents) do
+            if IsValid(ent) then
+                self:Sub(ent)
+            end
+        end
+
+        if not self._removed then self:Remove() end
+    end
 end
