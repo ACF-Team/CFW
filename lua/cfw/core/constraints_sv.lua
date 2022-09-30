@@ -57,6 +57,8 @@ end)
 -- Since all of the entities are being removed, we don't care about the individual disconnections
 -- Just remove the contraption.
 hook.Add("PreUndo", "cfw.undo", function(undo)
+    if not undo.Entities then return end
+
     if string.Explode(" ", "AdvDupe2")[1] == "AdvDupe2"  then
         local alreadyRemoved = {}
 
