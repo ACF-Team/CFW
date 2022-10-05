@@ -1,7 +1,7 @@
 local function floodFill(source, sink)
     local closed       = {[source] = true}
     local closedCount  = 0
-    local open         = source:GetLinks()
+    local open         = source._links
 
     while next(open) do
         local node = next(open)
@@ -13,7 +13,7 @@ local function floodFill(source, sink)
 
         if node == sink then return true, closed end
 
-        for ent in pairs(node:GetLinks()) do
+        for ent in pairs(node._links) do
             if not closed[ent] then
                 open[ent] = true
             end
@@ -28,7 +28,7 @@ function CFW.connect(a, b)
     -- If a link already exists, add to the link counter
     -- If not, create a new link between the two entities and resolve their contraptions
 
-    local link = a:GetLink(b)
+    local link = a._links[b]
 
     if link then
         link:Add()
