@@ -1,7 +1,7 @@
 local connect    = CFW.connect
 local disconnect = CFW.disconnect
 local filter     = {
-    "gmod_hands" = true
+    gmod_hands = true
 }
 
 CFW.parentFilter = filter

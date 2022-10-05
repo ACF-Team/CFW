@@ -28,7 +28,7 @@ function CFW.connect(a, b)
     -- If a link already exists, add to the link counter
     -- If not, create a new link between the two entities and resolve their contraptions
 
-    local link = a._links[b]
+    local link = a._links and a._links[b] or false
 
     if link then
         link:Add()
