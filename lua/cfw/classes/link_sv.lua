@@ -44,7 +44,7 @@ do -- Class def
             return self:Remove() -- Returns true for a "dirty break"
         end
 
-        return false
+        return true
     end
 
     function CLASS:Remove()
