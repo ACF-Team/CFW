@@ -51,7 +51,7 @@ function CFW.connect(a, b)
             ac:Add(b)
         elseif bc then -- Only contraption B
             bc:Add(a)
-        else -- No contraption ( CREATE )
+        else -- No contraption
             local newContraption = CFW.createContraption()
             
             newContraption:Add(a)
@@ -61,18 +61,25 @@ function CFW.connect(a, b)
 end
 
 function CFW.disconnect(a, b)
-    local link       = a:GetLink(b)
+    -- Decrement the link counter between two ents
+    -- If the link is broken with either ent having no other connections, it's a clean break
+    -- Otherwise, it needs to be determined whether or not there is an indirect chain of connections
+
+    local link       = a._links[b]
     local cleanBreak = link:Sub()
 
     if cleanBreak then return end
 
-    local directlyConnected, floodedEnts, floodedCount = floodFill(a, b)
+    local indirectlyConnected, floodedEnts, floodedCount = floodFill(a, b)
 
-    if directlyConnected then return end
+    if indirectlyConnected then return end
+
+    -- At this point the contraption has been split
+    -- Create a new contraption and move the cut-off ents to it
+    -- The child contraption will always be the smaller of the two
 
     local parentContraption, childContraption = a:GetContraption(), CFW.createContraption()
 
-    -- We want to move the least amount of things around, swap the order if necessary
     if parentContraption.count < floodedCount then parentContraption, childContraption = childContraption, parentContraption end
 
     for ent in pairs(floodedEnts) do
