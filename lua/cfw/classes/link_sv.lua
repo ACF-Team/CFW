@@ -40,16 +40,12 @@ do -- Class def
     function CLASS:Sub()
         self.count = self.count - 1
 
-        if self.count == 0 then
-            return self:Remove() -- Returns true for a "dirty break"
-        end
+        if self.count == 0 then return self:Remove() end
 
         return true
     end
 
     function CLASS:Remove()
-        -- A clean break occurs when either entity no longer has any other links and there's no need
-        -- to check for indirect connections
         local cleanBreak = false
         local a, b = self.a, self.b
 

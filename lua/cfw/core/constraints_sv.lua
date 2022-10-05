@@ -1,7 +1,8 @@
-local connect      = CFW.connect
-local disconnect   = CFW.disconnect
-local timerSimple  = timer.Simple
-local isConstraint = {
+local connect       = CFW.connect
+local disconnect    = CFW.disconnect
+local timerSimple   = timer.Simple
+local stringExplode = string.Explode
+local isConstraint  = {
     phys_hinge = true, -- axis
     phys_lengthconstraint = true, -- rope
     phys_constraint = true, -- weld
@@ -48,25 +49,31 @@ hook.Add("OnEntityCreated", "cfw.entityCreated", function(con)
                 con:CallOnRemove("CFW", onRemove)
 
                 connect(a, b)
+
+                if con.Type == "Elastic" then
+                    print(a, b)
+                end
             end
         end)
     end
 end)
 
--- Elastics and Hydraulics break during undos for some reason. This is a workaround.
--- Since all of the entities are being removed, we don't care about the individual disconnections
--- Just remove the contraption.
+-- Short-Circuits the usual CFW behavior to delete all contraptions in a dupe at once
+-- Circumvents strange behavior with elastics (including hydraulics)
 hook.Add("PreUndo", "cfw.undo", function(undo)
     if not undo.Entities then return end
+    if stringExplode(" ", "AdvDupe2")[1] ~= "AdvDupe2"  then return end
 
-    if string.Explode(" ", "AdvDupe2")[1] == "AdvDupe2"  then
-        local alreadyRemoved = {}
+    -- Find all entities including those not in the original dupe (wire holograms, etc.) by searching their contraptions
+    -- Disable their CFW behavior and then delete the contraption
+    local alreadyRemoved = {}
 
-        for _, ent in ipairs(undo.Entities) do
-            local contraption = ent:GetContraption()
+    for _, ent in ipairs(undo.Entities) do
+        local contraption = ent:GetContraption()
 
-            if contraption then
-                -- Remove callbacks from constraints
+        if contraption and not alreadyRemoved[contraption] then
+            for ent in pairs(contraption.ents) do
+                -- Disable constraint-removal behavior
                 if ent.Constraints then
                     for _, con in ipairs(ent.Constraints) do
                         if IsValid(con) and isConstraint[con:GetClass()] then
@@ -75,18 +82,13 @@ hook.Add("PreUndo", "cfw.undo", function(undo)
                     end
                 end
 
-                if not alreadyRemoved[contraption] then
-                    -- Mark all entities, including those not in the dupe, as already removed
-                    -- This takes care of holograms and such
-                    for ent in pairs(contraption.ents) do
-                        ent._cfwRemoved = true
-                    end
-
-                    -- Then remove the contraption
-                    alreadyRemoved[contraption] = true
-                    contraption:Remove()
-                end
+                -- Disable unparenting behavior
+                ent._cfwRemoved = true
             end
+
+            -- Then remove the contraption
+            alreadyRemoved[contraption] = true
+            contraption:Remove()
         end
     end
 end)
