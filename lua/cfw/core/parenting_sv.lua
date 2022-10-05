@@ -1,5 +1,10 @@
 local connect    = CFW.connect
 local disconnect = CFW.disconnect
+local filter     = {
+    "gmod_hands" = true
+}
+
+CFW.parentFilter = filter
 
 hook.Add("Initialize", "CFW", function()
     timer.Simple(0, function()
@@ -14,7 +19,7 @@ hook.Add("Initialize", "CFW", function()
 
             if self._cfwRemoved then return end -- Removed by an undo
             if oldParent == parent and oldAttach ~= newAttach then return end
-            if self:GetClass() == "gmod_hands" then return end
+            if filter[self:GetClass()] then return end
         
             if IsValid(oldParent) then disconnect(self, oldParent, isParent) end
             if IsValid(parent) then connect(self, parent, isParent) end
