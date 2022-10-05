@@ -49,10 +49,6 @@ hook.Add("OnEntityCreated", "cfw.entityCreated", function(con)
                 con:CallOnRemove("CFW", onRemove)
 
                 connect(a, b)
-
-                if con.Type == "Elastic" then
-                    print(a, b)
-                end
             end
         end)
     end
