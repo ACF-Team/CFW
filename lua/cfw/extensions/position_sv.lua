@@ -1,7 +1,6 @@
 local CLASS     = CFW.classes.contraption
 local VEC_0     = Vector(0, 0, 0)
-local VEC_SMALL = -Vector(math.huge, math.huge, math.huge)
-local VEC_HUGE  = Vector(math.huge, math.huge, math.huge)
+local HUGE      = math.huge
 
 function CLASS:GetPos()
     -- TODO: Optimize this
@@ -16,7 +15,7 @@ function CLASS:GetPos()
 end
 
 function CLASS:GetAABB()
-    local mins, maxs = Vector(math.huge, math.huge, math.huge), -Vector(math.huge, math.huge, math.huge)
+    local mins, maxs = Vector(HUGE, HUGE, HUGE), -Vector(HUGE, HUGE, HUGE)
 
     for ent in pairs(self.ents) do
         local pos = ent:GetPos()
