@@ -1,21 +1,21 @@
-local function floodFill(source, sink)
-    local closed       = {[source] = true}
+local function floodFill(source, sinkIndex)
+    local closed       = {[source:EntIndex()] = true}
     local closedCount  = 0
-    local open         = source._links
+    local open         = source:GetLinks()
 
     while next(open) do
-        local node = next(open)
+        local entIndex, entLink = next(open)
 
-        open[node]   = nil
-        closed[node] = true
+        open[entIndex]   = nil
+        closed[entIndex] = true
 
         closedCount = closedCount + 1
 
-        if node == sink then return true, closed end
+        if entIndex == sinkIndex then return true, closed end
 
-        for ent in pairs(node._links) do
-            if not closed[ent] then
-                open[ent] = true
+        for neighborIndex, neighborLink in pairs(Entity(entIndex)._links) do
+            if not closed[neighborIndex] then
+                open[neighborIndex] = true
             end
         end
     end
@@ -28,7 +28,7 @@ function CFW.connect(a, b)
     -- If a link already exists, add to the link counter
     -- If not, create a new link between the two entities and resolve their contraptions
 
-    local link = a._links and a._links[b] or false
+    local link = a:GetLink(b)
 
     if link then
         link:Add()
@@ -53,24 +53,20 @@ function CFW.connect(a, b)
             bc:Add(a)
         else -- No contraption
             local newContraption = CFW.createContraption()
-            
+
             newContraption:Add(a)
             newContraption:Add(b)
         end
     end
 end
 
-function CFW.disconnect(a, b)
-    -- Decrement the link counter between two ents
-    -- If the link is broken with either ent having no other connections, it's a clean break
-    -- Otherwise, it needs to be determined whether or not there is an indirect chain of connections
+function CFW.disconnect(entA, indexB)
+    local link              = entA._links[indexB]
+    local contraptionPopped = link:Sub()
 
-    local link       = a._links[b]
-    local cleanBreak = link:Sub()
+    if contraptionPopped then return end
 
-    if cleanBreak then return end
-
-    local indirectlyConnected, floodedEnts, floodedCount = floodFill(a, b)
+    local indirectlyConnected, floodedIndecii, floodedCount = floodFill(entA, indexB)
 
     if indirectlyConnected then return end
 
@@ -78,11 +74,13 @@ function CFW.disconnect(a, b)
     -- Create a new contraption and move the cut-off ents to it
     -- The child contraption will always be the smaller of the two
 
-    local parentContraption, childContraption = a:GetContraption(), CFW.createContraption()
+    local parentContraption, childContraption = entA:GetContraption(), CFW.createContraption()
 
     if parentContraption.count < floodedCount then parentContraption, childContraption = childContraption, parentContraption end
 
-    for ent in pairs(floodedEnts) do
+    for entIndex, weed in pairs(floodedIndecii) do
+        local ent = Entity(entIndex)
+
         parentContraption:Sub(ent)
         childContraption:Add(ent)
     end

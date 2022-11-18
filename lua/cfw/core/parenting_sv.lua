@@ -21,7 +21,7 @@ hook.Add("Initialize", "CFW", function()
             if oldParent == parent and oldAttach ~= newAttach then return end
             if filter[self:GetClass()] then return end
         
-            if IsValid(oldParent) then disconnect(self, oldParent, isParent) end
+            if IsValid(oldParent) then disconnect(self, oldParent:EntIndex(), isParent) end
             if IsValid(parent) then connect(self, parent, isParent) end
         end
     end)

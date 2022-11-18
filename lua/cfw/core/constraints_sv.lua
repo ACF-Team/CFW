@@ -15,22 +15,7 @@ local isConstraint  = {
 local function onRemove(con)
     local a, b = con.Ent1, con.Ent2 or con.Ent4
 
-    if not IsValid(a) or not IsValid(b) then
-        -- This shouldn't have happened
-        -- Error and destroy the contraption
-        ErrorNoHaltWithStack()
-        print("Constraint Type: " .. con.Type)
-        print("Ent1", con.Ent1)
-        print("Ent2", con.Ent2)
-        
-        local contraption = (IsValid(a) and a or IsValid(b) and b):GetContraption()
-
-        contraption:Defuse()
-
-        return
-    end
-
-    disconnect(a, b)
+    if IsValid(a) then disconnect(a, con._cfwEntB) else disconnect(b, con._cfwEntA) end
 end
 
 -- This is a dumb hack necessitated by SetTable being called on constraints immediately after they are created
@@ -47,6 +32,9 @@ hook.Add("OnEntityCreated", "cfw.entityCreated", function(con)
                 if not IsValid(b) or b:IsWorld() then return end
 
                 con:CallOnRemove("CFW", onRemove)
+
+                con._cfwEntA = a:EntIndex()
+                con._cfwEntB = b:EntIndex()
 
                 connect(a, b)
             end

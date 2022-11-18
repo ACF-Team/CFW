@@ -5,19 +5,22 @@
 CFW.classes.link = {}
 
 function CFW.createLink(a, b)
+    local indexA, indexB = a:EntIndex(), b:EntIndex()
+
     local link = {
-        [a]   = true,
-        [b]   = true,
-        a     = a,
-        b     = b,
+        entA = a,
+        entB = b,
+        indexA = indexA,
+        indexB = indexB,
         count = 1,
+        color = ColorRand()
     }
 
     a._links = a._links or {}
     b._links = b._links or {}
 
-    a._links[b] = link
-    b._links[a] = link
+    a._links[indexB] = link
+    b._links[indexA] = link
 
     setmetatable(link, CFW.classes.link)
 
@@ -46,27 +49,37 @@ do -- Class def
     end
 
     function CLASS:Remove()
-        local cleanBreak = false
-        local a, b = self.a, self.b
+        local contraptionPopped = false
+        local entA, entB        = self.entA, self.entB
+        local indexA, indexB    = self.indexA, self.indexB
 
-        a._links[b] = nil
-        b._links[a] = nil
+        if IsValid(entA) then
+            entA._links[indexB] = nil
 
-        if not next(a._links) then
-            a._links = nil
-            a:GetContraption():Sub(a)
+            if not next(entA._links) then
+                entA._links = nil
+                entA:GetContraption():Sub(entA)
 
-            cleanBreak = true
+                contraptionPopped = true
+            end
+        else
+            contraptionPopped = true
         end
 
-        if not next(b._links) then
-            b._links = nil
-            b:GetContraption():Sub(b)
+        if IsValid(entB) then
+            entB._links[indexA] = nil
 
-            cleanBreak = true
+            if not next(entB._links) then
+                entB._links = nil
+                entB:GetContraption():Sub(entB)
+
+                contraptionPopped = true
+            end
+        else
+            contraptionPopped = true
         end
         
-        return cleanBreak
+        return contraptionPopped
     end
 end
 
@@ -74,7 +87,7 @@ do
     local ENT = FindMetaTable("Entity")
 
     function ENT:GetLink(other) -- Returns the link object between this and other
-        return self._links and self._links[other] or nil
+        return self._links and self._links[other:EntIndex()] or nil
     end
 
     function ENT:GetLinks() -- Creates a shallow copy of the links table
