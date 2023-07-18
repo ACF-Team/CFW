@@ -24,6 +24,8 @@ hook.Add("Initialize", "CFW", function()
             if IsValid(oldParent) then disconnect(self, oldParent:EntIndex(), isParent) end
             if IsValid(newParent) then connect(self, newParent, isParent) end
 
+            if self.CFW_NO_FAMILY_TRAVERSAL then return end
+
             if IsValid(newParent) then
                 if newParent._family then
                     self:SetFamily(newParent._family)

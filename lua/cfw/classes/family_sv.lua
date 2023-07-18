@@ -22,7 +22,7 @@ end
 do -- Class def
     local CLASS = CFW.classes.family; CLASS.__index = CLASS
 
-    function CLASS:Init() print("INIT", self)
+    function CLASS:Init()
         CFW.families[self] = true
 
         hook.Run("cfw.family.created", self)
@@ -33,45 +33,42 @@ do -- Class def
     end
 
     function CLASS:Delete()
-        --self:Sub(self.ancestor)
+        self:Sub(self.ancestor, true)
 
-        print("DELETE", self)
         hook.Run("cfw.family.deleted", self)
 
         CFW.families[self] = nil
     end
 
-    function CLASS:Add(entity, depth)
-        depth = depth or 0
-        print(string.rep("    ", depth) .. "ADD", entity, self)
-
+    function CLASS:Add(entity)
         self.count        = self.count + 1
         self.ents[entity] = true
 
         entity._family = self
-        entity:DebugColor(self.color)
 
         hook.Run("cfw.family.added", self, entity)
 
         for child in pairs(entity:GetChildren()) do
-            self:Add(child, depth + 1)
+            if child.CFW_NO_FAMILY_TRAVERSAL then continue end
+
+            self:Add(child)
         end
     end
 
-    function CLASS:Sub(entity, depth)
-        depth = depth or 0
-
+    function CLASS:Sub(entity, isAncestor)
         self.count        = self.count - 1
         self.ents[entity] = nil
 
         entity._family = nil
-        entity:DebugColor()
 
-        print(string.rep("    ", depth) .. "SUB", entity, self)
         hook.Run("cfw.family.subbed", self, entity)
 
+        if isAncestor then return end
+
         for child in pairs(entity:GetChildren()) do
-            self:Sub(child, depth + 1)
+            if child.CFW_NO_FAMILY_TRAVERSAL then continue end
+
+            self:Sub(child)
         end
     end
 end
@@ -87,7 +84,7 @@ do
         return self._family and self._family.ancestor or self
     end
 
-    function ENT:SetFamily(newFamily) print("SET FAMILY", self, newFamily)
+    function ENT:SetFamily(newFamily)
         local oldFamily = self._family
 
         if oldFamily then
@@ -107,22 +104,5 @@ do
 
     function ENT:GetFamilyChildren()
         return self._family.lookup[self].children
-    end
-
-    function ENT:DebugColor(color)
-        print(color)
-        if color then
-            self._originalColor    = self._originalColor or self:GetColor()
-            self._originalMaterial = self._originalMaterial or self:GetMaterial()
-
-            self:SetColor(color)
-            self:SetMaterial("models/debug/debugwhite")
-        else
-            self:SetColor(self._originalColor)
-            self:SetMaterial(self._originalMaterial)
-
-            self._originalColor    = nil
-            self._originalMaterial = nil
-        end
     end
 end
