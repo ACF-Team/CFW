@@ -26,15 +26,12 @@ hook.Add("Initialize", "CFW", function()
 
             if IsValid(newParent) then
                 if newParent._family then
-                    self:SetFamily(newParent._family, newParent)
+                    self:SetFamily(newParent._family)
                 else
-                    local newFamily = CFW.classes.family.create()
-
-                    newParent:SetFamily(newFamily)
-                    self:SetFamily(newFamily, newParent)
+                    CFW.classes.family.create(newParent)
                 end
             else
-                self:SetFamily(nil, oldParent)
+                self:SetFamily(nil)
             end
         end
     end)
