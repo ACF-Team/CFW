@@ -78,7 +78,7 @@ function CFW.disconnect(entA, indexB)
 
     if parentContraption.count < floodedCount then parentContraption, childContraption = childContraption, parentContraption end
 
-    for entIndex, weed in pairs(floodedIndecii) do
+    for entIndex in pairs(floodedIndecii) do
         local ent = Entity(entIndex)
 
         parentContraption:Sub(ent)
