@@ -61,7 +61,10 @@ function CFW.connect(a, b)
 end
 
 function CFW.disconnect(entA, indexB)
-    local link              = entA._links[indexB]
+    local link = entA._links[indexB]
+
+    if not link then return end
+
     local contraptionPopped = link:Sub()
 
     if contraptionPopped then return end
