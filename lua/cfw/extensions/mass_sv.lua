@@ -27,7 +27,7 @@ hook.Add("cfw.contraption.entityAdded", "CFW_Mass", function(con, ent)
 
     if IsValid(obj) then
         local mass = obj:GetMass()
-    
+
         ent._mass     = mass
         con.totalMass = con.totalMass + mass
     end

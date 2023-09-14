@@ -13,7 +13,7 @@ hook.Add("Initialize", "CFW", function()
 
         function ENT:SetParent(newParent, newAttach, ...)
             local oldParent = self:GetParent()
-            local oldAttach = self:GetParentAttachment()
+            -- local oldAttach = self:GetParentAttachment()
 
             setParent(self, newParent, newAttach, ...)
 
