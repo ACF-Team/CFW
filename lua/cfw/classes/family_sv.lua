@@ -49,6 +49,7 @@ do -- Class def
         hook.Run("cfw.family.added", self, entity)
 
         for child in pairs(entity:GetChildren()) do
+            if child == entity then continue end
             if child.CFW_NO_FAMILY_TRAVERSAL then continue end
 
             self:Add(child)
@@ -66,6 +67,7 @@ do -- Class def
         if isAncestor then return end
 
         for child in pairs(entity:GetChildren()) do
+            if child == entity then continue end
             if child.CFW_NO_FAMILY_TRAVERSAL then continue end
 
             self:Sub(child)

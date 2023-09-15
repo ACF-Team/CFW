@@ -36,9 +36,9 @@ local realms = {
     _sv = include,
     _cl = AddCSLuaFile,
     _sh = function(path)
-		include(path)
-		AddCSLuaFile(path)
-	end
+        include(path)
+        AddCSLuaFile(path)
+    end
 }
 
 setmetatable(realms, realms)
@@ -63,7 +63,7 @@ local function load(path, realm)
 end
 
 local function loadAddon()
-	Msg("\n> " .. addonName .. "/\n")
+    Msg("\n> " .. addonName .. "/\n")
 
     local addonGlobal = {}; _G[addonName] = addonGlobal
     local  _, dirs    = file.Find(addonName .. "/*", "LUA")
@@ -93,7 +93,7 @@ local function loadAddon()
 end
 
 concommand.Add(string.lower(globalName .. "_reload"), function()
-	loadAddon()
+    loadAddon()
 end)
 
 loadAddon()

@@ -25,9 +25,9 @@ end
 hook.Add("OnEntityCreated", "cfw.entityCreated", function(con)
     if isConstraint[con:GetClass()] then
         timerSimple(0, function()
-            if IsValid(con)then
+            if IsValid(con) then
                 local a, b = con.Ent1, con.Ent2 or con.Ent4
-                
+
                 if not IsValid(a) or a:IsWorld() then return end
                 if not IsValid(b) or b:IsWorld() then return end
 

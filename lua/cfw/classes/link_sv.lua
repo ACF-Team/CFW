@@ -78,7 +78,7 @@ do -- Class def
         else
             contraptionPopped = true
         end
-        
+
         return contraptionPopped
     end
 end
