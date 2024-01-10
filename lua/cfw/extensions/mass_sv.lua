@@ -23,6 +23,8 @@ hook.Add("cfw.contraption.created", "CFW_Mass", function(con)
 end)
 
 hook.Add("cfw.contraption.entityAdded", "CFW_Mass", function(con, ent)
+    if not IsValid(ent) then return end
+
     local obj = ent:GetPhysicsObject()
 
     if IsValid(obj) then
@@ -34,6 +36,8 @@ hook.Add("cfw.contraption.entityAdded", "CFW_Mass", function(con, ent)
 end)
 
 hook.Add("cfw.contraption.entityRemoved", "CFW_Mass", function(con, ent)
+    if not IsValid(ent) then return end
+
     local obj = ent:GetPhysicsObject()
 
     if IsValid(obj) then
