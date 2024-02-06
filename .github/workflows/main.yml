@@ -17,5 +17,5 @@ jobs:
           type: "server content"
           tag1: "build"
         env:
-          STEAM_USERNAME: ${{ secrets.STEAM_USERNAME }}
-          STEAM_PASSWORD: ${{ secrets.STEAM_PASSWORD }}
+          STEAM_USERNAME: ${{ secrets.STEAM_USER1_NAME }}
+          STEAM_PASSWORD: ${{ secrets.STEAM_USER1_PASS }}
