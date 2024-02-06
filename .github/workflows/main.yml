@@ -1,0 +1,21 @@
+name: Deploy to Workshop
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: CFC-Servers/gmod-upload@master
+        with:
+          id: 3154971187
+          changelog: "Deployment via Github to latest changes"
+          title: "Contraption Framework"
+          type: "server content"
+          tag1: "build"
+        env:
+          STEAM_USERNAME: ${{ secrets.STEAM_USERNAME }}
+          STEAM_PASSWORD: ${{ secrets.STEAM_PASSWORD }}
