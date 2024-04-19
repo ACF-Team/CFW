@@ -45,6 +45,8 @@ hook.Add("Initialize", "CFW", function()
                 end
             end
 
+            if self == newParent then return end
+
             setParent(self, newParent, newAttach, ...)
 
             if IsValid(savedParent) then
