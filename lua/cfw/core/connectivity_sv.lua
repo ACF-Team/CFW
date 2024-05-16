@@ -4,7 +4,7 @@ local function floodFill(source, sinkIndex)
     local open         = source:GetLinks()
 
     while next(open) do
-        local entIndex, entLink = next(open)
+        local entIndex = next(open) -- entIndex, entLink
 
         open[entIndex]   = nil
         closed[entIndex] = true
@@ -13,7 +13,7 @@ local function floodFill(source, sinkIndex)
 
         if entIndex == sinkIndex then return true, closed end
 
-        for neighborIndex, neighborLink in pairs(Entity(entIndex)._links) do
+        for neighborIndex, _ in pairs(Entity(entIndex)._links) do -- neighborIndex, neighborLink
             if not closed[neighborIndex] then
                 open[neighborIndex] = true
             end
