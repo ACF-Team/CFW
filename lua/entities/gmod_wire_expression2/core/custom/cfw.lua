@@ -56,7 +56,7 @@ end
 
 __e2setcost(20)
 
-e2function contraption contraption:getEntities()
+e2function array contraption:getEntities()
     if not isValidContraption(this) then return {} end
 
     local output = {}
