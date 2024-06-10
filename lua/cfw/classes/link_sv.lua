@@ -57,7 +57,6 @@ do -- Class def
             entA._links[indexB] = nil
 
             if not next(entA._links) then
-                entA._links = nil
                 entA:GetContraption():Sub(entA)
 
                 contraptionPopped = true
@@ -70,7 +69,6 @@ do -- Class def
             entB._links[indexA] = nil
 
             if not next(entB._links) then
-                entB._links = nil
                 entB:GetContraption():Sub(entB)
 
                 contraptionPopped = true
