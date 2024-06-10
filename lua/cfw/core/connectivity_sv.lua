@@ -28,6 +28,8 @@ function CFW.connect(a, b)
     -- If a link already exists, add to the link counter
     -- If not, create a new link between the two entities and resolve their contraptions
 
+    if a == b then return end -- Should not happen normally, but ragdolls allow you to constrain to other bones on the same ragdoll, and it is the same entity. We'll head it off here since we don't want to track links that don't actually link anything
+
     local link = a:GetLink(b)
 
     if link then
@@ -61,6 +63,8 @@ function CFW.connect(a, b)
 end
 
 function CFW.disconnect(entA, indexB)
+    if entA:EntIndex() == indexB then return end -- Should not happen normally, but ragdolls allow you to constrain to other bones on the same ragdoll, and it is the same entity
+
     local link              = entA._links[indexB]
     local contraptionPopped = link:Sub()
 
