@@ -2,7 +2,6 @@ TOOL.Category	= "Contraption Framework"
 TOOL.Name		= "CFW Tool"
 TOOL.AddToMenu	= false
 
-
 --[[
 	To access this, use 'gmod_tool cfw_tool'
 	Hidden because this relies on developer 1, so not for use by normal means, for now
@@ -16,7 +15,6 @@ TOOL.AddToMenu	= false
 	Tool screen should reflect mode of the tool as well
 	When this happens, maybe allow normal use of the tool as well?
 ]]
-
 
 TOOL.Entity		= nil
 
@@ -50,6 +48,7 @@ function TOOL:Think()
 	local tick = engine.TickInterval() + 0.05
 
 	local Rendered = {}
+
 	for _, link in pairs(selftbl._links) do
 		local entA, entB = link.entA, link.entB
 		debugoverlay.Line(entA:GetPos(),entB:GetPos(),tick,link.color,true)
@@ -64,9 +63,6 @@ function TOOL:Think()
 			debugoverlay.Text(entB:GetPos(),"B",tick,false)
 			Rendered[entB] = true
 		end
-
-
-
 	end
 end
 

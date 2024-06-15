@@ -56,6 +56,7 @@ hook.Add("Initialize", "CFW", function()
             if self._cfwRemoved then return end -- Removed by an undo
             if oldParent == newParent then return end
             if (validOldParent and oldParent:IsPlayer()) or (validNewParent and newParent:IsPlayer()) then return end
+            if (validOldParent and oldParent:IsNPC()) or (validNewParent and newParent:IsNPC()) then return end
             if filter[self:GetClass()] then return end
 
             if validOldParent then disconnect(self, oldParent:EntIndex(), isParent) end
