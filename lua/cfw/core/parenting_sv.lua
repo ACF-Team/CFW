@@ -57,6 +57,7 @@ hook.Add("Initialize", "CFW", function()
             if oldParent == newParent then return end
             if (validOldParent and oldParent:IsPlayer()) or (validNewParent and newParent:IsPlayer()) then return end
             if (validOldParent and oldParent:IsNPC()) or (validNewParent and newParent:IsNPC()) then return end
+            if (validOldParent and oldParent:IsNextBot()) or (validNewParent and newParent:IsNextBot()) then return end
             if filter[self:GetClass()] then return end
 
             if validOldParent then disconnect(self, oldParent:EntIndex(), isParent) end
