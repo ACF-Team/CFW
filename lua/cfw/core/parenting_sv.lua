@@ -93,3 +93,17 @@ hook.Add("Initialize", "CFW", function()
 
     hook.Remove("Initialize", "CFW")
 end)
+
+-- In order to prevent NULL entities flooding the ENT._links table, we'll just get rid of them before they get removed
+-- This is a fix for a really annoying issue that was showing up in multiple different ways
+hook.Add("EntityRemoved", "cfw.entityRemoved", function(ent)
+    if not IsValid(ent) then return end
+
+    local links = ent:GetLinks()
+
+    if not links then return end
+
+    for index in pairs(links) do
+        disconnect(ent, index)
+    end
+end)
