@@ -89,10 +89,13 @@ do
     end
 
     function ENT:GetLinks() -- Creates a shallow copy of the links table
-        local out = {}
+        local links = self._links
+        local out   = {}
 
-        for k, v in pairs(self._links) do
-            out[k] = v
+        if links then
+            for k, v in pairs(links) do
+                out[k] = v
+            end
         end
 
         return out
