@@ -13,7 +13,7 @@ local function floodFill(source, sinkIndex)
 
         if entIndex == sinkIndex then return true, closed end
 
-        for neighborIndex, _ in pairs(Entity(entIndex)._links) do -- neighborIndex, neighborLink
+        for neighborIndex in pairs(Entity(entIndex)._links) do -- neighborIndex, neighborLink
             if not closed[neighborIndex] then
                 open[neighborIndex] = true
             end
@@ -65,7 +65,10 @@ end
 function CFW.disconnect(entA, indexB)
     if entA:EntIndex() == indexB then return end -- Should not happen normally, but ragdolls allow you to constrain to other bones on the same ragdoll, and it is the same entity
 
-    local link              = entA._links[indexB]
+    local link = entA._links[indexB]
+
+    if not link then return end -- There's nothing to disconnect here
+
     local contraptionPopped = link:Sub()
 
     if contraptionPopped then return end
