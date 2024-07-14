@@ -1,6 +1,9 @@
 name: Deploy to Workshop
 
 on:
+  push:
+    branches:
+      - master
   workflow_dispatch:
 
 jobs:
@@ -8,8 +11,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: CFC-Servers/gmod-upload@master
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          path: project
+
+      - name: Upload to Workshop
+        uses: CFC-Servers/gmod-upload@master
         with:
           id: 3154971187
           changelog: "${{ github.event.head_commit.message }}"
