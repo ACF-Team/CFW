@@ -101,7 +101,7 @@ hook.Add("EntityRemoved", "cfw.entityRemoved", function(ent)
 
     local links = ent:GetLinks()
 
-    if not links then return end
+    if not next(links) then return end
 
     for index in pairs(links) do
         disconnect(ent, index)
