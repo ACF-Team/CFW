@@ -1,9 +1,9 @@
 -- Families are collections of parented entities, you know, parents... children...
 
-CFW.classes.family = {}
-CFW.families       = {}
+CFW.Classes.Family = {}
+CFW.Families       = {}
 
-function CFW.classes.family.create(ancestor)
+function CFW.Classes.Family.create(ancestor)
     local fam = {
         count    = 0,
         ents     = {},
@@ -11,7 +11,7 @@ function CFW.classes.family.create(ancestor)
         color    = ColorRand()
     }
 
-    setmetatable(fam, CFW.classes.family)
+    setmetatable(fam, CFW.Classes.Family)
 
     fam:Init()
     fam:Add(ancestor)
@@ -20,10 +20,10 @@ function CFW.classes.family.create(ancestor)
 end
 
 do -- Class def
-    local CLASS = CFW.classes.family; CLASS.__index = CLASS
+    local CLASS = CFW.Classes.Family; CLASS.__index = CLASS
 
     function CLASS:Init()
-        CFW.families[self] = true
+        CFW.Families[self] = true
 
         hook.Run("cfw.family.created", self)
     end
@@ -37,7 +37,7 @@ do -- Class def
 
         hook.Run("cfw.family.deleted", self)
 
-        CFW.families[self] = nil
+        CFW.Families[self] = nil
     end
 
     function CLASS:Add(entity)
@@ -102,7 +102,7 @@ do
         end
 
         if not newFamily and next(self:GetChildren()) then
-            CFW.classes.family.create(self)
+            CFW.Classes.Family.create(self)
         end
     end
 

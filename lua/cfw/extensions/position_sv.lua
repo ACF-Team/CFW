@@ -1,4 +1,4 @@
-local CLASS     = CFW.classes.contraption
+local CLASS     = CFW.Classes.Contraption
 local VEC_0     = Vector(0, 0, 0)
 local HUGE      = math.huge
 

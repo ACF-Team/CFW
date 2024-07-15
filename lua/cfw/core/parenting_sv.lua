@@ -69,7 +69,7 @@ hook.Add("Initialize", "CFW", function()
                 if newParent._family then
                     self:SetFamily(newParent._family)
                 else
-                    CFW.classes.family.create(newParent)
+                    CFW.Classes.Family.create(newParent)
                 end
             else
                 self:SetFamily(nil)

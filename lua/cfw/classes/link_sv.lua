@@ -2,7 +2,7 @@
 -- These are used to keep track of the number of connections between two entities
 -- In graph theory these are edges
 
-CFW.classes.link = {}
+CFW.Classes.Link = {}
 
 function CFW.createLink(a, b)
     local indexA, indexB = a:EntIndex(), b:EntIndex()
@@ -22,13 +22,13 @@ function CFW.createLink(a, b)
     a._links[indexB] = link
     b._links[indexA] = link
 
-    setmetatable(link, CFW.classes.link)
+    setmetatable(link, CFW.Classes.Link)
 
     return link:Init()
 end
 
 do -- Class def
-    local CLASS = CFW.classes.link
+    local CLASS = CFW.Classes.Link
 
     CLASS.__index = CLASS -- why?
 

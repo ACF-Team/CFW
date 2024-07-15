@@ -1,7 +1,7 @@
 E2Lib.RegisterExtension("contraption", true, "Enables interaction with Contraption Framework")
 
 local function isValidContraption(c)
-    return CFW.contraptions[c] or false
+    return CFW.Contraptions[c] or false
 end
 
 do -- Datatype and operator

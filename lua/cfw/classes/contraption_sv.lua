@@ -1,7 +1,7 @@
 -- Contraptions are an object to refer to a collection of connected entities
 
-CFW.contraptions        = {}
-CFW.classes.contraption = {}
+CFW.Contraptions        = {}
+CFW.Classes.Contraption = {}
 
 function CFW.createContraption()
     local con  = {
@@ -10,7 +10,7 @@ function CFW.createContraption()
         color = ColorRand(50, 255)
     }
 
-    setmetatable(con, CFW.classes.contraption)
+    setmetatable(con, CFW.Classes.Contraption)
 
     con:Init()
 
@@ -26,12 +26,12 @@ do -- Contraption getters and setters
 end
 
 do -- Class def
-    local CLASS = CFW.classes.contraption
+    local CLASS = CFW.Classes.Contraption
 
     CLASS.__index = CLASS
 
     function CLASS:Init()
-        CFW.contraptions[self] = true
+        CFW.Contraptions[self] = true
         hook.Run("cfw.contraption.created", self)
     end
 
@@ -72,7 +72,7 @@ do -- Class def
             hook.Run("cfw.contraption.removed", self)
         end
 
-        CFW.contraptions[self] = nil
+        CFW.Contraptions[self] = nil
     end
 
     function CLASS:Defuse()
