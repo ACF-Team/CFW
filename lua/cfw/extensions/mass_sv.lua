@@ -1,4 +1,4 @@
--- Tracks the total mass of a contraption
+-- Tracks the total mass of a contraption or family
 
 local PHYS    = FindMetaTable("PhysObj")
 local setMass = setMass or PHYS.SetMass
@@ -11,36 +11,45 @@ function PHYS:SetMass(newMass)
 
     setMass(self, newMass)
 
-    local con = self:GetEntity():GetContraption()
+    local con = ent:GetContraption()
 
     if con then
         con.totalMass = con.totalMass + (newMass - oldMass)
     end
 end
 
-hook.Add("cfw.contraption.created", "CFW_Mass", function(con)
-    con.totalMass = 0
-end)
+local function InitMass(Class)
+    Class.totalMass = 0
+end
 
-hook.Add("cfw.contraption.entityAdded", "CFW_Mass", function(con, ent)
-    if not IsValid(ent) then return end
+hook.Add("cfw.contraption.created", "CFW_Mass", InitMass)
+hook.Add("cfw.family.created", "CFW_Mass", InitMass)
 
-    local obj = ent:GetPhysicsObject()
+local function AddMass(Class, Ent)
+    if not IsValid(Ent) then return end
 
-    if IsValid(obj) then
-        local mass = obj:GetMass()
+    local PhysObj = Ent:GetPhysicsObject()
 
-        ent._mass     = mass
-        con.totalMass = con.totalMass + mass
+    if IsValid(PhysObj) then
+        local Mass = PhysObj:GetMass()
+
+        Ent._mass     = Mass
+        Class.totalMass = Class.totalMass + Mass
     end
-end)
+end
 
-hook.Add("cfw.contraption.entityRemoved", "CFW_Mass", function(con, ent)
-    if not IsValid(ent) then return end
+hook.Add("cfw.contraption.entityAdded", "CFW_Mass", AddMass)
+hook.Add("cfw.family.added", "CFW_Mass", AddMass)
 
-    local obj = ent:GetPhysicsObject()
+local function SubMass(Class, Ent)
+    if not IsValid(Ent) then return end
 
-    if IsValid(obj) then
-        con.totalMass = con.totalMass - obj:GetMass()
+    local PhysObj = Ent:GetPhysicsObject()
+
+    if IsValid(PhysObj) then
+        Class.totalMass = Class.totalMass - PhysObj:GetMass()
     end
-end)
+end
+
+hook.Add("cfw.contraption.entityRemoved", "CFW_Mass", SubMass)
+hook.Add("cfw.family.subbed", "CFW_Mass", SubMass)

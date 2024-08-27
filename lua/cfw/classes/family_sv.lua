@@ -8,6 +8,7 @@ function CFW.Classes.Family.create(ancestor)
         count    = 0,
         ents     = {},
         ancestor = ancestor,
+        children = {},
         color    = ColorRand()
     }
 
@@ -54,6 +55,7 @@ do -- Class def
             if child.CFW_NO_FAMILY_TRAVERSAL then continue end
 
             self:Add(child)
+            self.children[v] = true
         end
     end
 
@@ -73,6 +75,7 @@ do -- Class def
             if child.CFW_NO_FAMILY_TRAVERSAL then continue end
 
             self:Sub(child)
+            self.children[v] = nil
         end
     end
 end
@@ -85,7 +88,8 @@ do
     end
 
     function ENT:GetAncestor()
-        return self._family and self._family.ancestor or self
+        local Family = self._family
+        return Family and Family.ancestor or self
     end
 
     function ENT:SetFamily(newFamily)
@@ -107,6 +111,7 @@ do
     end
 
     function ENT:GetFamilyChildren()
-        return self._family.lookup[self].children
+        local Family = self._family
+        return Family and Family.children or self:GetChildren()
     end
 end
