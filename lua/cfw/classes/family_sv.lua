@@ -15,13 +15,15 @@ function CFW.Classes.Family.create(ancestor)
     setmetatable(fam, CFW.Classes.Family)
 
     fam:Init()
-    fam:Add(ancestor)
+    fam:Add(ancestor, true)
 
     return fam
 end
 
 do -- Class def
-    local CLASS = CFW.Classes.Family; CLASS.__index = CLASS
+    local CLASS = CFW.Classes.Family
+
+    CLASS.__index = CLASS
 
     function CLASS:Init()
         CFW.Families[self] = true
@@ -41,7 +43,7 @@ do -- Class def
         CFW.Families[self] = nil
     end
 
-    function CLASS:Add(entity)
+    function CLASS:Add(entity, isAncestor)
         self.count        = self.count + 1
         self.ents[entity] = true
 
@@ -49,13 +51,16 @@ do -- Class def
 
         hook.Run("cfw.family.added", self, entity)
 
+        if not isAncestor then
+            self.children[entity] = true
+        end
+
         for k, v in pairs(entity:GetChildren()) do
             local child = isnumber(k) and v or k
             if child == entity then continue end
             if child.CFW_NO_FAMILY_TRAVERSAL then continue end
 
             self:Add(child)
-            self.children[v] = true
         end
     end
 
@@ -69,13 +74,14 @@ do -- Class def
 
         if isAncestor then return end
 
+        self.children[entity] = nil
+
         for k, v in pairs(entity:GetChildren()) do
             local child = isnumber(k) and v or k
             if child == entity then continue end
             if child.CFW_NO_FAMILY_TRAVERSAL then continue end
 
             self:Sub(child)
-            self.children[v] = nil
         end
     end
 end
