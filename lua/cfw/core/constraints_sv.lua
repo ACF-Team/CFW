@@ -10,6 +10,7 @@ local isConstraint  = {
     phys_spring = true, -- elastic, hydraulics, muscles
     phys_pulleyconstraint = true, -- pulley (do people ever use these?)
     phys_slideconstraint = true, -- sliders
+    phys_ragdollconstraint = true, -- adv. ballsocket
 }
 
 local function onRemove(con)
