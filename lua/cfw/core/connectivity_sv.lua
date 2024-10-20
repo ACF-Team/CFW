@@ -13,6 +13,9 @@ local function floodFill(source, sinkIndex)
 
         if entIndex == sinkIndex then return true, closed end
 
+        local links = Entity(entIndex)._links
+        if not links then return false, closed end
+
         for neighborIndex in pairs(Entity(entIndex)._links) do -- neighborIndex, neighborLink
             if not closed[neighborIndex] then
                 open[neighborIndex] = true
