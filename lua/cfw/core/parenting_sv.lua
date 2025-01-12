@@ -29,6 +29,10 @@ hook.Add("Initialize", "CFW", function()
             local validNewParent = IsValid(newParent)
             local validOldParent = IsValid(oldParent)
 
+            if self.CFW_OnParentedTo and self:CFW_OnParentedTo(oldParent, newParent, newAttach, ...) == false then
+                return
+            end
+
             if (validOldParent and oldParent.CFW_OnParented) and not validNewParent then
                 oldParent:CFW_OnParented(self, false)
             end
