@@ -1,7 +1,7 @@
 local function floodFill(source, sinkIndex)
     local closed       = {[source:EntIndex()] = true}
     local closedCount  = 0
-    local open         = source:GetLinks()
+    local open         = source:GetCFWLinks()
 
     while next(open) do
         local entIndex = next(open) -- entIndex, entLink
@@ -30,7 +30,7 @@ function CFW.connect(a, b)
 
     if a == b then return end -- Should not happen normally, but ragdolls allow you to constrain to other bones on the same ragdoll, and it is the same entity. We'll head it off here since we don't want to track links that don't actually link anything
 
-    local link = a:GetLink(b)
+    local link = a:GetCFWLink(b)
 
     if link then
         link:Add()
