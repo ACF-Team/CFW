@@ -67,7 +67,7 @@ function CFW.disconnect(entA, indexB)
 
     -- Don't soft error because if _links isn't present then it's a deeper CFW issue, nothing without a _links table should be able to reach this point at all
     local links = entA._links
-    if not links then ErrorNoHaltWithStack "Contraption Framwork Error: Entity had no links. This error generally indicates a deeper problem with CFW." end
+    if not links then ErrorNoHaltWithStack("Contraption Framework Error: Entity had no links. This error generally indicates a deeper problem with CFW.") end
 
     local link = links[indexB]
 
