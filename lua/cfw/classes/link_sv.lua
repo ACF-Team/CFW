@@ -84,11 +84,11 @@ end
 do
     local ENT = FindMetaTable("Entity")
 
-    function ENT:GetLink(other) -- Returns the link object between this and other
+    function ENT:GetCFWLink(other) -- Returns the link object between this and other
         return self._links and self._links[other:EntIndex()] or nil
     end
 
-    function ENT:GetLinks() -- Creates a shallow copy of the links table
+    function ENT:GetCFWLinks() -- Creates a shallow copy of the links table
         local links = self._links
         local out   = {}
 
