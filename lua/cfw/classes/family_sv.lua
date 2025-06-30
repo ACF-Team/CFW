@@ -76,6 +76,8 @@ do -- Class def
 
         self.children[entity] = nil
 
+        if not IsValid(entity) then return end
+
         for k, v in pairs(entity:GetChildren()) do
             local child = isnumber(k) and v or k
             if child == entity then continue end
