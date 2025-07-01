@@ -109,7 +109,7 @@ end)
 hook.Add("EntityRemoved", "cfw.entityRemoved", function(ent)
     if not IsValid(ent) then return end
 
-    local links = ent:GetLinks()
+    local links = ent:GetCFWLinks()
 
     if not next(links) then return end
 
