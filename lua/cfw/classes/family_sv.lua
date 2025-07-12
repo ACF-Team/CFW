@@ -58,6 +58,7 @@ do -- Class def
         for k, v in pairs(entity:GetChildren()) do
             local child = isnumber(k) and v or k
             if child == entity then continue end
+            if not IsValid(child) then continue end
             if child.CFW_NO_FAMILY_TRAVERSAL then continue end
 
             self:Add(child)
