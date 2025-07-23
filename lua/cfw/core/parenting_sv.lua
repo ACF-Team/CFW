@@ -30,10 +30,10 @@ hook.Add("Initialize", "CFW", function()
             local validOldParent = IsValid(oldParent)
 
             -- NOTE:
-            -- CFW_OnParentedTo is called before any parenting operation happens, to allow entities to block parenting
-            -- Therefore GetParent() will be outdated in CFW_OnParentedTo call stacks
+            -- CFW_PreParentedTo is called before any parenting operation happens, to allow entities to block parenting
+            -- Therefore GetParent() will be outdated in CFW_PreParentedTo call stacks
             -- See CFW_AfterParentedTo, which cannot block calls.
-            if self.CFW_OnParentedTo and self:CFW_OnParentedTo(oldParent, newParent, newAttach, ...) == false then
+            if self.CFW_PreParentedTo and self:CFW_PreParentedTo(oldParent, newParent, newAttach, ...) == false then
                 return
             end
 
