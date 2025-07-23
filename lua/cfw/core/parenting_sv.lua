@@ -23,45 +23,78 @@ hook.Add("Initialize", "CFW", function()
         local setParent = ENT.SetParent
         local getParent = ENT.GetParent
 
+        --[[
+            The hooks here are as follows:
+            (we need better docs! many such cases!)
+
+                - CFW_PreParentedTo: Allows the entity to block itself from being parented.
+                - CFW_PreParented: Allows the entity to block another entity from being parented to it.
+                - CFW_OnParentedTo: A non-blockable equiv. of PreParentedTo
+                - CFW_OnParented: A non-blockable equiv. of PreParented
+
+                The hook order is this:
+                    - CFW_PreParentedTo on potential child (may block)
+                    - CFW_PreParented on potential parent (may block)
+                    - If a valid old parent exists, CFW_OnParented(child, false)
+                    - ACTUAL SET PARENT HAPPENS
+                    - If a valid new parent, call CFW_OnParented
+                    - Call self OnParentedTo
+        ]]
         function ENT:SetParent(newParent, newAttach, ...)
             local savedParent
             local oldParent = getParent(self)
             local validNewParent = IsValid(newParent)
             local validOldParent = IsValid(oldParent)
 
-            -- NOTE:
-            -- CFW_PreParentedTo is called before any parenting operation happens, to allow entities to block parenting
-            -- Therefore GetParent() will be outdated in CFW_PreParentedTo call stacks
-            -- See CFW_OnParentedTo, which cannot block calls.
+            -- Check if the entity is able to be a child to this parent or not.
             if self.CFW_PreParentedTo and self:CFW_PreParentedTo(oldParent, newParent, newAttach, ...) == false then
                 return
             end
 
-            if (validOldParent and oldParent.CFW_OnParented) and not validNewParent then
-                oldParent:CFW_OnParented(self, false)
-            end
-
+            -- If a valid new parent, get any entity detours that may be present for the new parents class
             if validNewParent then
                 local detour = detours[newParent:GetClass()]
 
+                -- Store savedParent so we can do CFW_PreParented and CFW_OnParented later on the actual target
                 if newParent.CFW_OnParented then
                     savedParent = newParent
                 end
 
+                -- Set newParent to detour
                 if detour then
+                    -- march note: shouldn't we be setting validNewParent again here?
+                    -- won't do it for now to avoid breaking anything, but seems like an obvious one
                     newParent = detour(newParent) or newParent
                 end
             end
 
+            -- Block parenting to self (why doesn't this just happen earlier on?? that case would never be valid!)
             if self == newParent then return end
 
+            -- Check if the parent is willing to accept this child or not
+            if IsValid(savedParent) and savedParent.CFW_PreParented and savedParent:CFW_PreParented(self) == false then
+                return
+            end
+
+            -- At this point on, nothing else will block the parenting call
+            -- Pre-deparenting hook
+            -- MARCH: Changed this to not check "not validNewParent" (didn't really make sense... and didn't allow deparenting checks unless there was no valid parent??)
+            if validOldParent and oldParent.CFW_OnParented then
+                oldParent:CFW_OnParented(self, false)
+            end
+
+            -- Actual setparent call
             setParent(self, newParent, newAttach, ...)
 
+            -- Hook for post-new-child
             if IsValid(savedParent) then
                 savedParent:CFW_OnParented(self, true)
             end
 
-            if self.CFW_OnParentedTo then self:CFW_OnParentedTo(oldParent, newParent) end
+            -- Hook for post-new-parent
+            if self.CFW_OnParentedTo then
+                self:CFW_OnParentedTo(oldParent, newParent)
+            end
 
             if self._cfwRemoved then return end -- Removed by an undo
             if oldParent == newParent then return end
