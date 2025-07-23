@@ -32,7 +32,7 @@ hook.Add("Initialize", "CFW", function()
             -- NOTE:
             -- CFW_PreParentedTo is called before any parenting operation happens, to allow entities to block parenting
             -- Therefore GetParent() will be outdated in CFW_PreParentedTo call stacks
-            -- See CFW_AfterParentedTo, which cannot block calls.
+            -- See CFW_OnParentedTo, which cannot block calls.
             if self.CFW_PreParentedTo and self:CFW_PreParentedTo(oldParent, newParent, newAttach, ...) == false then
                 return
             end
@@ -61,7 +61,7 @@ hook.Add("Initialize", "CFW", function()
                 savedParent:CFW_OnParented(self, true)
             end
 
-            if self.CFW_AfterParentedTo then self:CFW_AfterParentedTo(oldParent, newParent) end
+            if self.CFW_OnParentedTo then self:CFW_OnParentedTo(oldParent, newParent) end
 
             if self._cfwRemoved then return end -- Removed by an undo
             if oldParent == newParent then return end
