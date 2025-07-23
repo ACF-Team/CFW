@@ -56,7 +56,7 @@ hook.Add("Initialize", "CFW", function()
                 local detour = detours[newParent:GetClass()]
 
                 -- Store savedParent so we can do CFW_PreParented and CFW_OnParented later on the actual target
-                if newParent.CFW_OnParented then
+                if newParent.CFW_OnParented or newParent.CFW_PreParented then
                     savedParent = newParent
                 end
 
@@ -71,8 +71,10 @@ hook.Add("Initialize", "CFW", function()
             -- Block parenting to self (why doesn't this just happen earlier on?? that case would never be valid!)
             if self == newParent then return end
 
+            local validSavedParent = IsValid(savedParent)
+
             -- Check if the parent is willing to accept this child or not
-            if IsValid(savedParent) and savedParent.CFW_PreParented and savedParent:CFW_PreParented(self) == false then
+            if validSavedParent and savedParent.CFW_PreParented and savedParent:CFW_PreParented(self) == false then
                 return
             end
 
@@ -87,7 +89,7 @@ hook.Add("Initialize", "CFW", function()
             setParent(self, newParent, newAttach, ...)
 
             -- Hook for post-new-child
-            if IsValid(savedParent) then
+            if validSavedParent and savedParent.CFW_OnParented then
                 savedParent:CFW_OnParented(self, true)
             end
 
