@@ -5,11 +5,12 @@ CFW.Families       = {}
 
 function CFW.Classes.Family.create(ancestor)
     local fam = {
-        count    = 0,
-        ents     = {},
-        ancestor = ancestor,
-        children = {},
-        color    = ColorRand()
+        count       = 0,
+        ents        = {},
+        entsbyclass = {},
+        ancestor    = ancestor,
+        children    = {},
+        color       = ColorRand()
     }
 
     setmetatable(fam, CFW.Classes.Family)
@@ -49,6 +50,10 @@ do -- Class def
 
         entity._family = self
 
+        local className = entity:GetClass()
+        self.entsbyclass[className] = self.entsbyclass[className] or {}
+        self.entsbyclass[className][entity] = true
+
         hook.Run("cfw.family.added", self, entity)
 
         if not isAncestor then
@@ -71,6 +76,11 @@ do -- Class def
 
         entity._family = nil
 
+        local className = entity:GetClass()
+        if self.entsbyclass[className] then
+            self.entsbyclass[className][entity] = nil
+        end
+
         hook.Run("cfw.family.subbed", self, entity)
 
         if isAncestor then return end
@@ -86,6 +96,14 @@ do -- Class def
 
             self:Sub(child)
         end
+    end
+
+    local Empty     = {}
+    function CLASS:EntitiesByClass(ClassName)
+        local Tracked = self.entsbyclass[ClassName]
+        if not Tracked then return Empty end
+
+        return Tracked
     end
 end
 
