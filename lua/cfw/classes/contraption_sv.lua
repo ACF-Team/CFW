@@ -102,4 +102,11 @@ do -- Class def
 
         return Tracked
     end
+
+    function CLASS:ContainsClass(ClassName)
+        local Tracked = self.entsbyclass[ClassName]
+        if not Tracked then return false end
+
+        return next(Tracked) ~= nil -- I don't *THINK* we would ever get isvalid here...
+    end
 end
