@@ -39,9 +39,10 @@ hook.Add("cfw.family.subbed", "CFW_ClassTracking", SubEntityClass)
 local CLASS     = CFW.Classes.Contraption
 local Empty     = {}
 
-function CLASS:FindByClass(ClassName)
+-- Return stateless iterator over classes
+function CLASS:IterateClasses(ClassName)
     local Tracked = self.Classes[ClassName]
-    if not Tracked then return Empty end
+    if not Tracked then return next, Empty, nil end
 
-    return Tracked
+    return next, Tracked, nil
 end
