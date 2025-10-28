@@ -3,6 +3,10 @@ local disconnect = CFW.disconnect
 local filter     = {
     gmod_hands = true
 }
+local specialEngineEnts = {
+    env_sprite = true,
+    env_spritetrail = true,
+}
 
 CFW.parentFilter = filter
 
@@ -103,16 +107,23 @@ hook.Add("Initialize", "CFW", function()
             if (validOldParent and oldParent:IsPlayer()) or (validNewParent and newParent:IsPlayer()) then return end
             if (validOldParent and oldParent:IsNPC()) or (validNewParent and newParent:IsNPC()) then return end
             if (validOldParent and oldParent:IsNextBot()) or (validNewParent and newParent:IsNextBot()) then return end
-            if filter[self:GetClass()] then return end
 
-            if validOldParent then disconnect(self, oldParent:EntIndex(), isParent) end
+            local entClass = self:GetClass()
+            if filter[entClass] then return end
+
+            -- Handle the edge case where an entity was originally parented in-engine but is being reparented in the same tick before we could even detect the old parent
+            local isUnlinkedSpecialEngineEnt = validOldParent and specialEngineEnts[entClass] and not self:GetCFWLink(oldParent)
+
+            if validOldParent and not isUnlinkedSpecialEngineEnt then disconnect(self, oldParent:EntIndex(), isParent) end
             if validNewParent then connect(self, newParent, isParent) end
 
             if self.CFW_NO_FAMILY_TRAVERSAL then return end
 
             if validNewParent then
-                if newParent._family then
-                    self:SetFamily(newParent._family)
+                local newParentFamily = newParent:GetFamily()
+
+                if newParentFamily then
+                    self:SetFamily(newParentFamily)
                 else
                     CFW.Classes.Family.create(newParent)
                 end
@@ -137,6 +148,30 @@ hook.Add("Initialize", "CFW", function()
     end)
 
     hook.Remove("Initialize", "CFW")
+end)
+
+-- Attempting to handle some entities that are parented in the engine before we can reach them
+hook.Add("OnEntityCreated", "cfw.engineParentedEntityCreated", function(ent)
+    if not specialEngineEnts[ent:GetClass()] then return end
+
+    timer.Simple(0, function()
+        if not IsValid(ent) then return end
+
+        local parent = ent:GetParent()
+        if not IsValid(parent) or ent:GetCFWLink(parent) then return end
+
+        connect(ent, parent)
+
+        if ent.CFW_NO_FAMILY_TRAVERSAL then return end
+
+        local parentFamily = parent:GetFamily()
+
+        if parentFamily then
+            ent:SetFamily(parentFamily)
+        else
+            CFW.Classes.Family.create(parent)
+        end
+    end)
 end)
 
 -- In order to prevent NULL entities flooding the ENT._links table, we'll just get rid of them before they get removed
