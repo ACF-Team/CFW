@@ -76,7 +76,8 @@ do -- Class def
 
         entity._family = nil
 
-        local className = entity:GetClass()
+        local entValid = IsValid(entity)
+        local className = entValid and entity:GetClass() or ""
         if self.entsbyclass[className] then
             self.entsbyclass[className][entity] = nil
         end
@@ -87,7 +88,7 @@ do -- Class def
 
         self.children[entity] = nil
 
-        if not IsValid(entity) then return end
+        if not entValid then return end
 
         for k, v in pairs(entity:GetChildren()) do
             local child = isnumber(k) and v or k
