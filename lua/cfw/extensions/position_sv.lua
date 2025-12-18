@@ -30,10 +30,11 @@ do -- AABB
         if worldCorner.z > maxs.z then maxs.z = worldCorner.z end
     end
 
-    function CLASS:GetAABB()
+    function CLASS:GetAABB(filter)
         local mins, maxs = Vector(HUGE, HUGE, HUGE), -Vector(HUGE, HUGE, HUGE)
 
         for ent in pairs(self.ents) do
+            if filter and not filter(ent) then continue end
             local obbMins, obbMaxs = ent:GetCollisionBounds()
             local minX, minY, minZ = obbMins.x, obbMins.y, obbMins.z
             local maxX, maxY, maxZ = obbMaxs.x, obbMaxs.y, obbMaxs.z
