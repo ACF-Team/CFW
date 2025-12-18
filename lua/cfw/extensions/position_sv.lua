@@ -36,8 +36,8 @@ do -- AABB
         for ent in pairs(self.ents) do
             if filter and not filter(ent) then continue end
             local obbMins, obbMaxs = ent:GetCollisionBounds()
-            local minX, minY, minZ = obbMins.x, obbMins.y, obbMins.z
-            local maxX, maxY, maxZ = obbMaxs.x, obbMaxs.y, obbMaxs.z
+            local minX, minY, minZ = obbMins:Unpack()
+            local maxX, maxY, maxZ = obbMaxs:Unpack()
 
             -- Calculate all 8 corners of the entity's OBB in world space
             expandAABB(ent, maxX, minY, minZ, mins, maxs) -- Top Left Front
