@@ -8,7 +8,8 @@ function CFW.createContraption()
         ents        = {},
         entsbyclass = {},
         count       = 0,
-        color       = ColorRand(50, 255)
+        color       = ColorRand(50, 255),
+        families    = {}
     }
 
     setmetatable(con, CFW.Classes.Contraption)
