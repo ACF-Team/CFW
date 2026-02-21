@@ -8,7 +8,7 @@ do -- Datatype and operator
     registerType("contraption", "xcr", nil, nil, nil,
         function(retval)
             if retval == nil then return end
-            if not istable(retval) then error("Return value is neither nil nor a table, but a "..type(retval).."!",0) end
+            if not istable(retval) then error("Return value is neither nil nor a table, but a " .. type(retval) .. "!", 0) end
         end,
         function(v)
             return not istable(v)
@@ -16,7 +16,7 @@ do -- Datatype and operator
     )
 
     e2function number operator_is(contraption cont)
-	    return isValidContraption(cont) and 1 or 0
+        return isValidContraption(cont) and 1 or 0
     end
 
     e2function number operator==(contraption c1, contraption c2)
@@ -26,7 +26,7 @@ end
 
 do
     hook.Add("cfw.contraption.created", "e2Tables", function(c)
-        c.e2Table = E2Lib.newE2Table()
+        c.e2Table = WireLib.E2Table.New()
     end)
 
     -- TODO: Merge support
@@ -51,7 +51,7 @@ e2function number contraption:getMass()
 end
 
 e2function table contraption:getTable()
-    return isValidContraption(this) and this.e2Table or E2Lib.newE2Table()
+    return isValidContraption(this) and this.e2Table or WireLib.E2Table.New()
 end
 
 __e2setcost(20)

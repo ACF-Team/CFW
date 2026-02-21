@@ -10,7 +10,8 @@ function CFW.Classes.Family.create(ancestor)
         entsbyclass = {},
         ancestor    = ancestor,
         children    = {},
-        color       = ColorRand()
+        color       = ColorRand(),
+        created     = CurTime(),
     }
 
     setmetatable(fam, CFW.Classes.Family)
@@ -82,10 +83,16 @@ do -- Class def
 
         entity._family = nil
 
-        local entValid = IsValid(entity)
-        local className = entValid and entity:GetClass() or ""
-        if self.entsbyclass[className] then
-            self.entsbyclass[className][entity] = nil
+        local entValid    = IsValid(entity)
+        local className   = entValid and entity:GetClass() or ""
+        local entsByClass = self.entsbyclass[className]
+
+        if entsByClass then
+            entsByClass[entity] = nil
+
+            if not next(entsByClass) then
+                self.entsbyclass[className] = nil
+            end
         end
 
         hook.Run("cfw.family.subbed", self, entity)
@@ -146,7 +153,7 @@ do
             newFamily:Add(self)
         end
 
-        if not newFamily and next(self:GetChildren()) then
+        if not newFamily and not self.CFW_REMOVING and next(self:GetChildren()) then
             CFW.Classes.Family.create(self)
         end
     end

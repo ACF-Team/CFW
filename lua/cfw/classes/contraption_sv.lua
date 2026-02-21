@@ -7,9 +7,10 @@ function CFW.createContraption()
     local con  = {
         ents        = {},
         entsbyclass = {},
+        families    = {},
         count       = 0,
         color       = ColorRand(50, 255),
-        families    = {}
+        created     = CurTime(),
     }
 
     setmetatable(con, CFW.Classes.Contraption)
@@ -62,9 +63,15 @@ do -- Class def
         self.ents[ent]   = nil
         self.count       = self.count - 1
 
-        local className = ent:GetClass()
-        if self.entsbyclass[className] then
-            self.entsbyclass[className][ent] = nil
+        local className   = ent:GetClass()
+        local entsByClass = self.entsbyclass[className]
+
+        if entsByClass then
+            entsByClass[ent] = nil
+
+            if not next(entsByClass) then
+                self.entsbyclass[className] = nil
+            end
         end
 
         hook.Run("cfw.contraption.entityRemoved", self, ent)

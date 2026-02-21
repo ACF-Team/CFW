@@ -8,12 +8,13 @@ function CFW.createLink(a, b)
     local indexA, indexB = a:EntIndex(), b:EntIndex()
 
     local link = {
-        entA = a,
-        entB = b,
-        indexA = indexA,
-        indexB = indexB,
-        count = 1,
-        color = ColorRand()
+        entA    = a,
+        entB    = b,
+        indexA  = indexA,
+        indexB  = indexB,
+        count   = 1,
+        color   = ColorRand(),
+        created = CurTime(),
     }
 
     a._links = a._links or {}
@@ -57,6 +58,8 @@ do -- Class def
             entA._links[indexB] = nil
 
             if not next(entA._links) then
+                -- It's important that the entity is removed from the family first, then the contraption in that order
+                entA:SetFamily(nil)
                 entA:GetContraption():Sub(entA)
 
                 contraptionPopped = true
@@ -69,6 +72,7 @@ do -- Class def
             entB._links[indexA] = nil
 
             if not next(entB._links) then
+                entB:SetFamily(nil)
                 entB:GetContraption():Sub(entB)
 
                 contraptionPopped = true
