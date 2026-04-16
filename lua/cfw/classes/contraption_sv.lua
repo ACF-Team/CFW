@@ -30,13 +30,14 @@ do -- Contraption getters and setters
     -- for a week or so, then remove it entirely. Use CFW_GetContraption as its replacement which is properly namespaced.
     -- This function has caused headaches in other codebases (wiremod's cam controllers for example) and should've always been namedspaced...
 
-    function ENT:GetContraption()
-        return Entity_GetTable(self)._contraption
-    end
 
     function ENT:CFW_GetContraption()
-        return Entity_GetTable(self)._contraption
+        local SelfTbl = Entity_GetTable(self)
+        if not SelfTbl then return nil end
+        return SelfTbl._contraption
     end
+
+    ENT.GetContraption = ENT.CFW_GetContraption
 end
 
 do -- Class def
