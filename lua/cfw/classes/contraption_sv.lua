@@ -21,10 +21,11 @@ function CFW.createContraption()
 end
 
 do -- Contraption getters and setters
-    local ENT = FindMetaTable("Entity")
+    local ENT              = FindMetaTable("Entity")
+    local Entity_GetTable  = ENT.GetTable
 
     function ENT:GetContraption()
-        return self._contraption
+        return Entity_GetTable(self)._contraption
     end
 end
 
