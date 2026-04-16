@@ -52,9 +52,9 @@ do -- AABB
 
         local center = (mins + maxs) * 0.5
 
-        debugoverlay.Cross(mins, 12, 0.03, Color(255, 0, 0), true)
-        debugoverlay.Cross(maxs, 12, 0.03, Color(0, 255, 0), true)
-        debugoverlay.Box(center, mins - center, maxs - center, 0.03, self.color)
+        -- debugoverlay.Cross(mins, 12, 0.1, Color(255, 0, 0), true)
+        -- debugoverlay.Cross(maxs, 12, 0.1, Color(0, 255, 0), true)
+        -- debugoverlay.Box(center, mins - center, maxs - center, 0.1, self.color)
 
         return mins, maxs, center
     end
