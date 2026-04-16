@@ -11,7 +11,7 @@ function PHYS:SetMass(newMass)
 
     setMass(self, newMass)
 
-    local con = ent:GetContraption()
+    local con = ent:CFW_GetContraption()
 
     if con then
         con.totalMass = con.totalMass + (newMass - oldMass)

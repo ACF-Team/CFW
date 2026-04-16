@@ -60,7 +60,7 @@ do -- Class def
             if not next(entA._links) then
                 -- It's important that the entity is removed from the family first, then the contraption in that order
                 entA:SetFamily(nil)
-                entA:GetContraption():Sub(entA)
+                entA:CFW_GetContraption():Sub(entA)
 
                 contraptionPopped = true
             end
@@ -73,7 +73,7 @@ do -- Class def
 
             if not next(entB._links) then
                 entB:SetFamily(nil)
-                entB:GetContraption():Sub(entB)
+                entB:CFW_GetContraption():Sub(entB)
 
                 contraptionPopped = true
             end

@@ -54,7 +54,7 @@ hook.Add("PreUndo", "cfw.undo", function(undo)
     local alreadyRemoved = {}
 
     for _, ent in ipairs(undo.Entities) do
-        local contraption = ent:GetContraption()
+        local contraption = ent:CFW_GetContraption()
 
         if contraption and not alreadyRemoved[contraption] then
             for ent in pairs(contraption.ents) do

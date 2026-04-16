@@ -39,7 +39,7 @@ function CFW.connect(a, b)
         CFW.createLink(a, b)
 
         -- Resolve contraption states
-        local ac, bc = a:GetContraption(), b:GetContraption()
+        local ac, bc = a:CFW_GetContraption(), b:CFW_GetContraption()
 
         if ac and bc then
             if ac ~= bc then -- Two DIFFERENT contraptions
@@ -85,7 +85,7 @@ function CFW.disconnect(entA, indexB)
     -- Create a new contraption and move the cut-off ents to it
     -- The child contraption will always be the smaller of the two
 
-    local parentContraption, childContraption = entA:GetContraption(), CFW.createContraption()
+    local parentContraption, childContraption = entA:CFW_GetContraption(), CFW.createContraption()
 
     if parentContraption.count < floodedCount then parentContraption, childContraption = childContraption, parentContraption end
 

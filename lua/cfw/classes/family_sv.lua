@@ -30,7 +30,7 @@ do -- Class def
     function CLASS:Init()
         CFW.Families[self] = true
 
-        local con = self.ancestor:GetContraption()
+        local con = self.ancestor:CFW_GetContraption()
         if con then con.families[self] = true end
 
         hook.Run("cfw.family.created", self)
@@ -43,7 +43,7 @@ do -- Class def
     function CLASS:Delete()
         self:Sub(self.ancestor, true)
 
-        local con = self.ancestor:GetContraption()
+        local con = self.ancestor:CFW_GetContraption()
         if con then con.families[self] = nil end
 
         hook.Run("cfw.family.deleted", self)

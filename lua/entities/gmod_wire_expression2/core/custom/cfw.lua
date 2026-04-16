@@ -39,7 +39,7 @@ e2function number contraption:isValid()
 end
 
 e2function contraption entity:getContraption()
-    return this:GetContraption()
+    return this:CFW_GetContraption()
 end
 
 e2function number contraption:count()
