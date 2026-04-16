@@ -24,7 +24,17 @@ do -- Contraption getters and setters
     local ENT              = FindMetaTable("Entity")
     local Entity_GetTable  = ENT.GetTable
 
+    -- MARCH 4/16/2026
+    -- We're going to deprecate this function and remove it sometime within the next 3-4 months probably.
+    -- Appropriate announcement will be given out to potential consumers of the API soonish, and then I'll make this ErrorNoHaltWithStack
+    -- for a week or so, then remove it entirely. Use CFW_GetContraption as its replacement which is properly namespaced.
+    -- This function has caused headaches in other codebases (wiremod's cam controllers for example) and should've always been namedspaced...
+
     function ENT:GetContraption()
+        return Entity_GetTable(self)._contraption
+    end
+
+    function ENT:CFW_GetContraption()
         return Entity_GetTable(self)._contraption
     end
 end
