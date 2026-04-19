@@ -1,4 +1,3 @@
-local EventViewer = CFW.EventViewer
 
 local function GetEventViewerName(Contraption) return "Contraption: " .. tostring(Contraption):sub(8) end
 local function InitializeHooks(Enabled)
@@ -11,6 +10,8 @@ local function InitializeHooks(Enabled)
         hook.Remove("cfw.contraption.removed", "CFW_DevtoolsHooks")
         return
     end
+
+    local EventViewer = CFW.EventViewer
 
     hook.Add("cfw.contraption.created", "CFW_DevtoolsHooks", function(self)
         if EventViewer.Enabled() then
