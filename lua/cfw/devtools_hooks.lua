@@ -51,4 +51,6 @@ local function InitializeHooks(Enabled)
 end
 
 hook.Add("ACF3_DevTools_EnableChanged", "CFW_Hook", InitializeHooks)
-InitializeHooks(CFW.EventViewer.Enabled())
+if CFW.EventViewer then -- ??????????????????
+    InitializeHooks(CFW.EventViewer.Enabled())
+end
