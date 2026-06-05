@@ -2,7 +2,14 @@
 -- These are used to keep track of the number of connections between two entities
 -- In graph theory these are edges
 
-CFW.Classes.Link = {}
+local CFW = CFW
+
+local EntityLinks = setmetatable({}, {__mode = "k"})
+
+CFW.EntityLinks = EntityLinks
+
+local CLASS = {}
+CFW.Classes.Link = CLASS
 
 function CFW.createLink(a, b)
     local indexA, indexB = a:EntIndex(), b:EntIndex()
@@ -17,20 +24,20 @@ function CFW.createLink(a, b)
         created = CurTime(),
     }
 
-    a._links = a._links or {}
-    b._links = b._links or {}
+    local linksA = EntityLinks[a] or {}
+    EntityLinks[a] = linksA
+    local linksB = EntityLinks[b] or {}
+    EntityLinks[b] = linksB
 
-    a._links[indexB] = link
-    b._links[indexA] = link
+    linksA[indexB] = link
+    linksB[indexA] = link
 
-    setmetatable(link, CFW.Classes.Link)
+    setmetatable(link, CLASS)
 
     return link:Init()
 end
 
 do -- Class def
-    local CLASS = CFW.Classes.Link
-
     CLASS.__index = CLASS -- why?
 
     function CLASS:Init()
@@ -55,9 +62,10 @@ do -- Class def
         local indexA, indexB    = self.indexA, self.indexB
 
         if IsValid(entA) then
-            entA._links[indexB] = nil
+            local linksA = EntityLinks[entA]
+            linksA[indexB] = nil
 
-            if not next(entA._links) then
+            if not next(linksA) then
                 -- It's important that the entity is removed from the family first, then the contraption in that order
                 entA:SetFamily(nil)
                 entA:CFW_GetContraption():Sub(entA)
@@ -69,9 +77,10 @@ do -- Class def
         end
 
         if IsValid(entB) then
-            entB._links[indexA] = nil
+            local linksB = EntityLinks[entB]
+            linksB[indexA] = nil
 
-            if not next(entB._links) then
+            if not next(linksB) then
                 entB:SetFamily(nil)
                 entB:CFW_GetContraption():Sub(entB)
 
@@ -89,11 +98,12 @@ do
     local ENT = FindMetaTable("Entity")
 
     function ENT:GetCFWLink(other) -- Returns the link object between this and other
-        return self._links and self._links[other:EntIndex()] or nil
+        local links = EntityLinks[self]
+        return links and links[other:EntIndex()] or nil
     end
 
     function ENT:GetCFWLinks() -- Creates a shallow copy of the links table
-        local links = self._links
+        local links = EntityLinks[self]
         local out   = {}
 
         if links then
