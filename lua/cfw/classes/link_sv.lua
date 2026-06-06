@@ -159,7 +159,7 @@ do -- MARK: Remove
                         newContraption.physical[child] = true -- ancestor is now a physical root
 
                         hook.Run("cfw.contraption.init", newContraption)
-                        hook.Run("cfw.contraption.split", contraption, newContraption)s)
+                        hook.Run("cfw.contraption.split", contraption, newContraption)
                         hook.Run("cfw.family.becameRoot", childFamily)
 
                         -- After detaching child's family, dissolve a now-zombie parent family
