@@ -26,7 +26,7 @@ do
     local Init = EventViewer.DefineEvent("CFW.Family.Init")
     Init.Icon = "icon16/group_add.png"
 
-    function Init.BuildNode(Node)
+    function Init.BuildNode()
 
     end
 end
@@ -97,7 +97,7 @@ do
     local BecameRoot = EventViewer.DefineEvent("CFW.Family.BecameRoot")
     BecameRoot.Icon = "icon16/shield.png"
 
-    function BecameRoot.BuildNode(Node)
+    function BecameRoot.BuildNode()
 
     end
 end
@@ -106,7 +106,7 @@ do
     local BecameSubFamily = EventViewer.DefineEvent("CFW.Family.BecameSubFamily")
     BecameSubFamily.Icon = "icon16/shield_go.png"
 
-    function BecameSubFamily.BuildNode(Node)
+    function BecameSubFamily.BuildNode()
 
     end
 end
@@ -115,7 +115,7 @@ do
     local Removed = EventViewer.DefineEvent("CFW.Family.Removed")
     Removed.Icon = "icon16/cancel.png"
 
-    function Removed.BuildNode(Node)
+    function Removed.BuildNode()
 
     end
 end

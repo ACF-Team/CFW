@@ -281,7 +281,7 @@ function CLASS:Remove(noHook) -- MARK: Remove contraption
 
     CFW.Contraptions[self] = nil
 
-    if not nohook then
+    if not noHook then
         for family in pairs(self.families) do
             hook.Run("cfw.family.removed", family)
         end

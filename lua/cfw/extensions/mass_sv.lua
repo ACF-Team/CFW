@@ -356,7 +356,7 @@ do -- MARK: Family hooks
         RecalcCoM(family)
     end)
 
-    hook.Add("cfw.family.split", "CFW_Mass", function(oldFamily, newFamily, newAncestor)
+    hook.Add("cfw.family.split", "CFW_Mass", function(oldFamily, newFamily)
         -- The moved members' contributions must be subtracted from oldFamily's accumulator
         -- in the SAME frame they were stored in: oldFamily's physical-root local space
         local oldRoot      = CFW.getPhysicalRoot(oldFamily.ancestor)

@@ -200,7 +200,7 @@ do -- Class def
         -- Old ancestor is now parented, no longer physical
         contraption.physical[oldAncestor] = nil
         -- newAncestor was already added to the contraption via Contraption:Add, which set physical = true
- 
+
         hook.Run("cfw.family.ancestorInserted", self, oldAncestor, newAncestor)
     end
 
