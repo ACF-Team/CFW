@@ -1,22 +1,26 @@
-local connect       = CFW.connect
-local disconnect    = CFW.disconnect
-local timerSimple   = timer.Simple
-local stringExplode = string.Explode
-local isConstraint  = {
+local connect     = CFW.connect
+local disconnect  = CFW.disconnect
+local timerSimple = timer.Simple
+
+-- Constraint types tracked by CFW
+-- Note: Some types (weld, ballsocket, adv. ballsocket) are deduplicated by GMod's
+-- constraint library before entity creation - duplicates simply won't fire OnEntityCreated
+-- Elastics have a race condition when removed where one of the two entities may be removed before the hook fires
+-- TODO: Figure out a way to handle elastics. Until then, they have to be ignored or we get stale entries
+CFW.isConstraint = {
     phys_hinge = true, -- axis
     phys_lengthconstraint = true, -- rope
     phys_constraint = true, -- weld
     phys_ballsocket = true, -- ballsocket
-    phys_spring = true, -- elastic, hydraulics, muscles
-    phys_pulleyconstraint = true, -- pulley (do people ever use these?)
+    -- phys_spring = true, -- elastic, hydraulics, muscles -- INTENTIONALLY IGNORED. Introduces race conditions that cannot be handled (yet?)
     phys_slideconstraint = true, -- sliders
     phys_ragdollconstraint = true, -- adv. ballsocket
 }
 
-local function onRemove(con)
-    local a, b = con.Ent1, con.Ent2 or con.Ent4
+local isConstraint = CFW.isConstraint
 
-    if IsValid(a) then disconnect(a, con._cfwEntB) else disconnect(b, con._cfwEntA) end
+local function onRemove(con)
+    disconnect(con.Ent1, con.Ent2)
 end
 
 -- This is a dumb hack necessitated by SetTable being called on constraints immediately after they are created
@@ -26,54 +30,33 @@ end
 hook.Add("OnEntityCreated", "cfw.entityCreated", function(con)
     if isConstraint[con:GetClass()] then
         timerSimple(0, function()
-            if IsValid(con) then
-                local a, b = con.Ent1, con.Ent2 or con.Ent4
+            if not IsValid(con) then return end
 
-                if not IsValid(a) or a:IsWorld() then return end
-                if not IsValid(b) or b:IsWorld() then return end
+            -- Rotation-only advanced ballsockets (phys_ragdollconstraint with onlyrotation=1)
+            -- don't constrain position, so we ignore them entirely
+            -- This mostly applies to setAng steering plates
+            if con.onlyrotation and con.onlyrotation ~= 0 then return end
 
-                con:CallOnRemove("CFW", onRemove)
+            local a, b = con.Ent1, con.Ent2
 
-                con._cfwEntA = a:EntIndex()
-                con._cfwEntB = b:EntIndex()
+            if not IsValid(a) or not IsValid(b) then return end
 
-                connect(a, b)
-            end
+            -- Ignore map stuff
+            if a:IsWorld() or a:CreatedByMap() then return end
+            if b:IsWorld() or b:CreatedByMap() then return end
+
+            -- Prevent ragdolls from constraining to themselves
+            if a == b then return end
+
+            -- Constraints and parenting are mutually exclusive
+            -- Severing a third-party parent matters: given child -> parent -> grandparent
+            -- adding constraint child <-> parent, the parent must lose its link to the grandparent (which splits the contraption)
+            if IsValid(a:GetParent()) then a:SetParent(nil) end
+            if IsValid(b:GetParent()) then b:SetParent(nil) end
+
+            con:CallOnRemove("CFW", onRemove)
+
+            connect(a, b)
         end)
-    end
-end)
-
--- Short-Circuits the usual CFW behavior to delete all contraptions in a dupe at once
--- Circumvents strange behavior with elastics (including hydraulics)
-hook.Add("PreUndo", "cfw.undo", function(undo)
-    if not undo.Entities then return end
-    if stringExplode(" ", "AdvDupe2")[1] ~= "AdvDupe2"  then return end
-
-    -- Find all entities including those not in the original dupe (wire holograms, etc.) by searching their contraptions
-    -- Disable their CFW behavior and then delete the contraption
-    local alreadyRemoved = {}
-
-    for _, ent in ipairs(undo.Entities) do
-        local contraption = ent:CFW_GetContraption()
-
-        if contraption and not alreadyRemoved[contraption] then
-            for ent in pairs(contraption.ents) do
-                -- Disable constraint-removal behavior
-                if ent.Constraints then
-                    for _, con in ipairs(ent.Constraints) do
-                        if IsValid(con) and isConstraint[con:GetClass()] then
-                            con:RemoveCallOnRemove("CFW")
-                        end
-                    end
-                end
-
-                -- Disable unparenting behavior
-                ent._cfwRemoved = true
-            end
-
-            -- Then remove the contraption
-            alreadyRemoved[contraption] = true
-            contraption:Remove()
-        end
     end
 end)
