@@ -242,3 +242,18 @@ hook.Add("OnEntityCreated", "cfw.engineParentedEntityCreated", function(ent)
         connect(ent, parent, true)
     end)
 end)
+
+-- In order to prevent NULL entities flooding the ENT._links table, we'll just get rid of them before they get removed
+-- This is a fix for a really annoying issue that was showing up in multiple different ways
+hook.Add("EntityRemoved", "cfw.entityRemoved", function(ent)
+    if not IsValid(ent) then return end
+
+    ent.CFW_REMOVING = true
+    local links = ent:GetCFWLinks()
+
+    if not next(links) then return end
+
+    for index in pairs(links) do
+        disconnect(ent, index)
+    end
+end)
