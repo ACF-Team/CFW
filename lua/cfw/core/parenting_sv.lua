@@ -246,7 +246,7 @@ end)
 -- In order to prevent NULL entities flooding the ENT._links table, we'll just get rid of them before they get removed
 -- This is a fix for a really annoying issue that was showing up in multiple different ways
 hook.Add("EntityRemoved", "cfw.entityRemoved", function(ent)
-    if not IsValid(ent) then return end
+    if not IsValid(ent) or CFW.isConstraint[ent:GetClass()] then return end
 
     ent.CFW_REMOVING = true
     local links = ent:GetCFWLinks()
