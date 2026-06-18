@@ -274,9 +274,11 @@ end
 function CLASS:Remove(noHook) -- MARK: Remove contraption
     if self.count > 0 then
         ErrorNoHalt("[CFW] Contraption:Remove called with " .. self.count .. " entities remaining\n")
+        --[[
         for ent in pairs(self.ents) do
             ErrorNoHalt("[CFW]   leftover entity: " .. tostring(ent) .. "\n")
         end
+        ]]
     end
 
     CFW.Contraptions[self] = nil
