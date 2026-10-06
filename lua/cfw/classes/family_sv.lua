@@ -253,8 +253,15 @@ do -- Class def
             local children = ent._children
             if not children then return end
 
+            local links = ent._links
+
             for child in pairs(children) do
-                if child and IsValid(child) and child ~= ent then
+                -- The engine's parent tree can disagree with CFW's while an entity is being removed: its links are
+                -- torn down one at a time but its children are still parented to it in the engine. A child whose
+                -- link is already gone was split off into its own contraption, so it must not be treated as part of this tree
+                local link = links and links[child]
+
+                if child and IsValid(child) and child ~= ent and link and link.isParent then
                     -- Check if child is a family root (has its own family as a sub-family)
                     local childFamily = child._family
 

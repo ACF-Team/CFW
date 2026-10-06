@@ -34,6 +34,3 @@ function CFW.disconnect(entA, entB)
     local link = entA._links and entA._links[entB]
     if link then link:Sub() end
 end
-
--- TODO: Dupes are ingesting and saving CFW contraption data, bloating file size significantly.
--- This doesn't need to be saved at all, CFW builds this data when the constraints are made

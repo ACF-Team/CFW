@@ -32,9 +32,10 @@ end
 
 -- Whether a constraint is a class CFW tracks at all, ignoring its endpoints.
 -- Mirrors the filtering in constraints_sv.lua: only specific classes count and rotation-only
--- advanced ballsockets are ignored.
+-- advanced ballsockets are ignored. Constraints already removed this tick (e.g. by the SetParent
+-- detour) stay valid until the end of the frame, so they're ignored too.
 local function isTrackedConstraintClass(c)
-    return IsValid(c) and isConstraint[c:GetClass()] ~= nil and not (c.onlyrotation and c.onlyrotation ~= 0)
+    return IsValid(c) and not c:IsMarkedForDeletion() and isConstraint[c:GetClass()] ~= nil and not (c.onlyrotation and c.onlyrotation ~= 0)
 end
 
 -- Whether a constraint entity is one CFW would actually track as a link between a and b.

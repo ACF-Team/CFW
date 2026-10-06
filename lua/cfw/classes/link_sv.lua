@@ -212,8 +212,19 @@ do -- MARK: Remove
                     parentFamily:Split(child)
 
                     if parentFamily.parentFamily == nil and parentFamily.count == 1 and not next(parentFamily.subFamilies) then
-                        parentFamily:Sub(parentFamily.ancestor)
+                        local ancestor = parentFamily.ancestor
+
+                        parentFamily:Sub(ancestor)
                         parentFamily:Remove()
+
+                        -- The dissolved ancestor is now bare. If it also has no remaining
+                        -- links, Sub it from the contraption so it doesn't linger as a
+                        -- permanent one-entity contraption
+                        if not next(ancestor._links) then
+                            contraption:Sub(ancestor)
+                        end
+
+                        if contraption.count == 0 then contraption:Remove() end
                     end
 
                     return

@@ -92,6 +92,12 @@ do -- MARK: Parented pair
                 if link.entA ~= child or link.entB ~= parent then
                     link.entA, link.entB = child, parent
                 end
+
+                -- Parent links always have count 1. The constraints that backed the old count
+                -- were all removed by the SetParent detour without disconnecting (it skips
+                -- constraints to the new parent so this link survives to be converted), so a
+                -- count > 1 here would never drain to 0 and the link would outlive the parent
+                link.count = 1
             else
                 link:Add()
             end
