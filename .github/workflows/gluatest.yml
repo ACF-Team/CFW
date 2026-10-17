@@ -1,0 +1,12 @@
+name: GLuaTest Runner
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - "main"
+
+jobs:
+  run-gluatest:
+    uses: CFC-Servers/GLuaTest/.github/workflows/run_tests.yml@main

@@ -5,7 +5,7 @@ do
     local Created = EventViewer.DefineEvent("CFW.Contraption.Created")
     Created.Icon = "icon16/add.png"
 
-    function Created.BuildNode(Node)
+    function Created.BuildNode(_)
 
     end
 end
@@ -70,7 +70,7 @@ do
     local Removed = EventViewer.DefineEvent("CFW.Contraption.Removed")
     Removed.Icon = "icon16/cancel.png"
 
-    function Removed.BuildNode(Node)
+    function Removed.BuildNode(_)
 
     end
 end
