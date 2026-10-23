@@ -1,7 +1,15 @@
 -- Contraptions are an object to refer to a collection of connected entities
 
-CFW.Contraptions        = {}
-CFW.Classes.Contraption = {}
+local CFW = CFW
+
+local Contraptions       = {}
+local EntityContraptions = setmetatable({}, {__mode = "k"})
+
+CFW.Contraptions         = Contraptions
+CFW.EntityContraptions   = EntityContraptions
+
+local CLASS = {}
+CFW.Classes.Contraption = CLASS
 
 function CFW.createContraption()
     local con  = {
@@ -13,7 +21,7 @@ function CFW.createContraption()
         created     = CurTime(),
     }
 
-    setmetatable(con, CFW.Classes.Contraption)
+    setmetatable(con, CLASS)
 
     con:Init()
 
@@ -21,32 +29,37 @@ function CFW.createContraption()
 end
 
 do -- Contraption getters and setters
-    local ENT              = FindMetaTable("Entity")
-    local Entity_GetTable  = ENT.GetTable
+    local ENT = FindMetaTable("Entity")
 
-    -- MARCH 4/16/2026
-    -- We're going to deprecate this function and remove it sometime within the next 3-4 months probably.
-    -- Appropriate announcement will be given out to potential consumers of the API soonish, and then I'll make this ErrorNoHaltWithStack
-    -- for a week or so, then remove it entirely. Use CFW_GetContraption as its replacement which is properly namespaced.
-    -- This function has caused headaches in other codebases (wiremod's cam controllers for example) and should've always been namedspaced...
-
-
-    function ENT:CFW_GetContraption()
-        local SelfTbl = Entity_GetTable(self)
-        if not SelfTbl then return nil end
-        return SelfTbl._contraption
+    if file.Exists("cfg/cfw_legacy_mode.cfg", "GAME") then
+        CFW.LEGACY_MODE = true
     end
 
-    ENT.GetContraption = ENT.CFW_GetContraption
+    function ENT:CFW_GetContraption()
+        return EntityContraptions[self]
+    end
+
+    if os.time() < 1791417621 or CFW.LEGACY_MODE then
+        local nextWarning
+
+        function ENT:GetContraption()
+            if not CFW.LEGACY_MODE then
+                local t = os.time()
+                if not nextWarning or t >= nextWarning then
+                    nextWarning = t + 60
+                    ErrorNoHaltWithStack("GetContraption is deprecated, use CFW_GetContraption instead. GetContraption will be removed on October 8th 2026.")
+                end
+            end
+            return self:CFW_GetContraption()
+        end
+    end
 end
 
-do -- Class def
-    local CLASS = CFW.Classes.Contraption
-
+do
     CLASS.__index = CLASS
 
     function CLASS:Init()
-        CFW.Contraptions[self] = true
+        Contraptions[self] = true
         hook.Run("cfw.contraption.created", self)
     end
 
@@ -59,7 +72,7 @@ do -- Class def
     end
 
     function CLASS:Add(ent)
-        ent._contraption = self
+        EntityContraptions[ent] = self
         self.ents[ent]   = true
         self.count       = self.count + 1
 
@@ -71,7 +84,7 @@ do -- Class def
     end
 
     function CLASS:Sub(ent)
-        ent._contraption = nil
+        EntityContraptions[ent] = nil
         self.ents[ent]   = nil
         self.count       = self.count - 1
 
@@ -102,7 +115,7 @@ do -- Class def
             hook.Run("cfw.contraption.removed", self)
         end
 
-        CFW.Contraptions[self] = nil
+        Contraptions[self] = nil
     end
 
     function CLASS:Defuse()
@@ -127,6 +140,6 @@ do -- Class def
         local Tracked = self.entsbyclass[ClassName]
         if not Tracked then return false end
 
-        return next(Tracked) ~= nil -- I don't *THINK* we would ever get NULL here...
+        return next(Tracked) ~= nil
     end
 end

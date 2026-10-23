@@ -1,7 +1,15 @@
 -- Families are collections of parented entities, you know, parents... children...
 
-CFW.Classes.Family = {}
-CFW.Families       = {}
+local CFW = CFW
+
+local Families       = {}
+local EntityFamilies = setmetatable({}, {__mode = "k"})
+
+CFW.Families       = Families
+CFW.EntityFamilies = EntityFamilies
+
+local CLASS = {}
+CFW.Classes.Family = CLASS
 
 function CFW.Classes.Family.create(ancestor)
     local fam = {
@@ -14,7 +22,7 @@ function CFW.Classes.Family.create(ancestor)
         created     = CurTime(),
     }
 
-    setmetatable(fam, CFW.Classes.Family)
+    setmetatable(fam, CLASS)
 
     fam:Init()
     fam:Add(ancestor, true)
@@ -23,12 +31,10 @@ function CFW.Classes.Family.create(ancestor)
 end
 
 do -- Class def
-    local CLASS = CFW.Classes.Family
-
     CLASS.__index = CLASS
 
     function CLASS:Init()
-        CFW.Families[self] = true
+        Families[self] = true
 
         local con = self.ancestor:CFW_GetContraption()
         if con then con.families[self] = true end
@@ -48,14 +54,14 @@ do -- Class def
 
         hook.Run("cfw.family.deleted", self)
 
-        CFW.Families[self] = nil
+        Families[self] = nil
     end
 
     function CLASS:Add(entity, isAncestor)
         self.count        = self.count + 1
         self.ents[entity] = true
 
-        entity._family = self
+        EntityFamilies[entity] = self
 
         local className = entity:GetClass()
         self.entsbyclass[className] = self.entsbyclass[className] or {}
@@ -81,7 +87,7 @@ do -- Class def
         self.count        = self.count - 1
         self.ents[entity] = nil
 
-        entity._family = nil
+        EntityFamilies[entity] = nil
 
         local entValid    = IsValid(entity)
         local className   = entValid and entity:GetClass() or ""
@@ -124,7 +130,7 @@ do -- Class def
         local Tracked = self.entsbyclass[ClassName]
         if not Tracked then return false end
 
-        return next(Tracked) ~= nil -- I don't *THINK* we would ever get NULL here...
+        return next(Tracked) ~= nil
     end
 end
 
@@ -132,16 +138,16 @@ do
     local ENT = FindMetaTable("Entity")
 
     function ENT:GetFamily()
-        return self._family
+        return EntityFamilies[self]
     end
 
     function ENT:GetAncestor()
-        local Family = self._family
+        local Family = EntityFamilies[self]
         return Family and Family.ancestor or self
     end
 
     function ENT:SetFamily(newFamily)
-        local oldFamily = self._family
+        local oldFamily = EntityFamilies[self]
 
         if oldFamily then
             oldFamily:Sub(self)
@@ -159,7 +165,7 @@ do
     end
 
     function ENT:GetFamilyChildren()
-        local Family = self._family
+        local Family = EntityFamilies[self]
         return Family and Family.children or self:GetChildren()
     end
 end

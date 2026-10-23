@@ -41,15 +41,15 @@ end
 function TOOL:Think()
 	local ent	= self.Entity
 	if not IsValid(ent) then return end
-	local selftbl	= ent:GetTable()
+	local links = CFW and CFW.EntityLinks and CFW.EntityLinks[ent]
 
-	if not selftbl._links then return end
+	if not links then return end
 
 	local tick = engine.TickInterval() + 0.05
 
 	local Rendered = {}
 
-	for _, link in pairs(selftbl._links) do
+	for _, link in pairs(links) do
 		local entA, entB = link.entA, link.entB
 		debugoverlay.Line(entA:GetPos(),entB:GetPos(),tick,link.color,true)
 
@@ -61,8 +61,8 @@ function TOOL:Think()
 
 		if not Rendered[entB] then
 			debugoverlay.Text(entB:GetPos(),"B",tick,false)
+
 			Rendered[entB] = true
 		end
 	end
 end
-
