@@ -108,6 +108,13 @@ do -- Class def
             if child == entity then continue end
             if child.CFW_NO_FAMILY_TRAVERSAL then continue end
 
+            -- The engine's parent tree can disagree with CFW's while an entity is being removed:
+            -- its links are torn down one at a time but its children are still parented to it in
+            -- the engine. A child that is no longer a member of this family was already detached
+            -- when its link was removed (and may now have its own family), so it must not be
+            -- Sub'd again
+            if child._family ~= self then continue end
+
             self:Sub(child)
         end
     end

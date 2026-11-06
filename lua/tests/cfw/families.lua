@@ -353,5 +353,38 @@ return {
                 done()
             end
         },
+
+        {
+            name = "Removing the family root subs each surviving member exactly once",
+            async = true,
+            coroutine = true,
+            timeout = 5,
+            func = function(State)
+                CFWTest.WaitForReady()
+
+                local A, B, C, D = CFWTest.SpawnProp(State), CFWTest.SpawnProp(State), CFWTest.SpawnProp(State), CFWTest.SpawnProp(State)
+
+                Parent(B, A)
+                Parent(C, A)
+
+                -- Keep C in the contraption (and out of the family-delete path) with a weld so the
+                -- family survives until the root's own teardown walks its engine children
+                CFWTest.WeldChain(C, D)
+
+                local Log = Record()
+
+                A:Remove()
+                CFWTest.WaitUntil(function() return B:GetFamily() == nil and C:GetFamily() == nil end)
+
+                -- While the root's links are torn down one at a time, its children are still
+                -- parented to it in the engine. Each surviving child must be subbed from the
+                -- family exactly once, and the family deleted exactly once
+                expect(#CFWTest.Filter(Log, "cfw.family.subbed", B)).to.equal(1)
+                expect(#CFWTest.Filter(Log, "cfw.family.subbed", C)).to.equal(1)
+                expect(#CFWTest.Filter(Log, "cfw.family.deleted")).to.equal(1)
+
+                done()
+            end
+        },
     }
 }
