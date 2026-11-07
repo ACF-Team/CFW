@@ -10,6 +10,46 @@ local specialEngineEnts = {
 
 CFW.parentFilter = filter
 
+-- A "transform proxy" pairs a logical OWNER entity (e.g. a turret drive) with an internal PROXY
+-- entity (e.g. its rotator). The proxy owns the physical transform; the owner stays the
+-- contraption-visible parent, and the proxy never appears in CFW's connectivity
+local ownerToProxy = {} -- [ownerClass] = field on the owner holding its proxy   (owner -> proxy)
+local proxyToOwner = {} -- [proxyClass] = field on the proxy holding its owner   (proxy -> owner)
+
+-- Resolves a transform-proxy owner to its proxy (turret -> rotator), or returns it unchanged
+local function toProxy(entity)
+    local field = ownerToProxy[entity:GetClass()]
+    if not field then return entity end
+
+    local proxy = entity[field]
+    return IsValid(proxy) and proxy or entity
+end
+
+-- Resolves a transform proxy to its owner (rotator -> turret), or returns it unchanged
+local function toOwner(entity)
+    local field = proxyToOwner[entity:GetClass()]
+    if not field then return entity end
+
+    local owner = entity[field]
+    return IsValid(owner) and owner or entity
+end
+
+-- Registers a transform-proxy pair: an owner entity whose children actually attach to an internal
+-- proxy in the engine. The proxy is filtered out of CFW entirely; it never gets a link, family
+-- membership, or contraption entry, and GetParent/GetChildren resolve through it so it stays
+-- invisible to traversal
+-- CFW.addTransformProxy("acf_turret", "Rotator", "acf_turret_rotator", "Turret")
+function CFW.addTransformProxy(ownerClass, ownerField, proxyClass, proxyField)
+    if not ownerClass then return end
+    if not ownerField then return end
+    if not proxyClass then return end
+    if not proxyField then return end
+
+    ownerToProxy[ownerClass] = ownerField
+    proxyToOwner[proxyClass] = proxyField
+    filter[proxyClass]       = true
+end
+
 local detours = {}
 
 function CFW.addParentDetour(class, variable)
@@ -23,9 +63,10 @@ end
 
 hook.Add("Initialize", "CFW", function()
     timer.Simple(0, function()
-        local ENT       = FindMetaTable("Entity")
-        local setParent = ENT.SetParent
-        local getParent = ENT.GetParent
+        local ENT        = FindMetaTable("Entity")
+        local setParent  = ENT.SetParent
+        local getParent  = ENT.GetParent
+        local getChildren = ENT.GetChildren
 
         --[[
             The hooks here are as follows:
@@ -50,6 +91,12 @@ hook.Add("Initialize", "CFW", function()
             local validNewParent = IsValid(newParent)
             local validOldParent = IsValid(oldParent)
 
+            -- Hide transform proxies from CFW: the link, family, and contraption all use the
+            -- logical parent, while the engine attach may use the proxy (its owner transforms
+            -- its children through the proxy)
+            local logicalNewParent = newParent
+            local logicalOldParent = self:GetParent()
+
             -- Check if the entity is able to be a child to this parent or not.
             if self.CFW_PreParentedTo and self:CFW_PreParentedTo(oldParent, newParent, newAttach, ...) == false then
                 return
@@ -68,7 +115,23 @@ hook.Add("Initialize", "CFW", function()
                 if detour then
                     -- march note: shouldn't we be setting validNewParent again here?
                     -- won't do it for now to avoid breaking anything, but seems like an obvious one
-                    newParent = detour(newParent) or newParent
+                    newParent        = detour(newParent) or newParent
+                    logicalNewParent = newParent -- Detour targets are logical parents
+                end
+
+                -- If parenting directly to a proxy, the logical parent is its owner
+                local owner = toOwner(newParent)
+
+                if owner ~= newParent then
+                    logicalNewParent = owner
+                end
+
+                -- If parenting to an owner, attach to its proxy in the engine
+                local proxy = toProxy(newParent)
+
+                if proxy ~= newParent then
+                    newParent      = proxy
+                    validNewParent = IsValid(newParent)
                 end
             end
 
@@ -112,20 +175,20 @@ hook.Add("Initialize", "CFW", function()
             if filter[entClass] then return end
 
             -- Handle the edge case where an entity was originally parented in-engine but is being reparented in the same tick before we could even detect the old parent
-            local isUnlinkedSpecialEngineEnt = validOldParent and specialEngineEnts[entClass] and not self:GetCFWLink(oldParent)
+            local isUnlinkedSpecialEngineEnt = validOldParent and specialEngineEnts[entClass] and not self:GetCFWLink(logicalOldParent)
 
-            if validOldParent and not isUnlinkedSpecialEngineEnt then disconnect(self, oldParent:EntIndex(), isParent) end
-            if validNewParent then connect(self, newParent, isParent) end
+            if validOldParent and not isUnlinkedSpecialEngineEnt then disconnect(self, logicalOldParent:EntIndex(), isParent) end
+            if IsValid(logicalNewParent) then connect(self, logicalNewParent, isParent) end
 
             if self.CFW_NO_FAMILY_TRAVERSAL then return end
 
-            if validNewParent then
-                local newParentFamily = newParent:GetFamily()
+            if IsValid(logicalNewParent) then
+                local newParentFamily = logicalNewParent:GetFamily()
 
                 if newParentFamily then
                     self:SetFamily(newParentFamily)
                 else
-                    CFW.Classes.Family.create(newParent)
+                    CFW.Classes.Family.create(logicalNewParent)
                 end
             else
                 self:SetFamily(nil)
@@ -141,9 +204,27 @@ hook.Add("Initialize", "CFW", function()
                 if detour then
                     parent = detour(parent) or parent
                 end
+
+                -- If the engine parent is a transform proxy, report its owner instead
+                local owner = toOwner(parent)
+
+                if owner ~= parent then
+                    parent = owner
+                end
             end
 
             return parent
+        end
+
+        function ENT:GetChildren()
+            -- A transform-proxy owner's children actually live on its proxy
+            local proxy = toProxy(self)
+
+            if proxy ~= self then
+                return getChildren(proxy)
+            end
+
+            return getChildren(self)
         end
     end)
 

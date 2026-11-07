@@ -8,8 +8,12 @@
 --     Child:CFW_OnParentedTo(Old, New)
 
 local DetourClass = "cfw_test_detour"
+local OwnerClass  = "cfw_test_proxy_owner"
+local ProxyClass  = "cfw_test_proxy"
 
 scripted_ents.Register({ Type = "anim", Base = "base_anim" }, DetourClass)
+scripted_ents.Register({ Type = "anim", Base = "base_anim" }, OwnerClass)
+scripted_ents.Register({ Type = "anim", Base = "base_anim" }, ProxyClass)
 
 -- Installs every callback on the given entities, each logging its name, arguments and what GetParent reports at that moment
 local function Instrument(Log, Child, ...)
@@ -285,6 +289,44 @@ return {
                 Child:SetParent(Detour)
 
                 expect(Child:GetParent()).to.equal(Detour)
+
+                done()
+            end
+        },
+
+        {
+            name = "A transform proxy never appears in CFW while children attach through it",
+            async = true,
+            coroutine = true,
+            timeout = 5,
+            func = function(State)
+                CFWTest.WaitForReady()
+
+                CFW.addTransformProxy(OwnerClass, "CFWTest_Proxy", ProxyClass, "CFWTest_Owner")
+
+                local Owner = CFWTest.SpawnProp(State, OwnerClass)
+                local Proxy = CFWTest.SpawnProp(State, ProxyClass)
+                local Child = CFWTest.SpawnProp(State)
+
+                Proxy.CFWTest_Owner = Owner
+                Proxy:SetParent(Owner)
+
+                Owner.CFWTest_Proxy = Proxy
+
+                Child:SetParent(Owner)
+                CFWTest.WaitUntil(function() return CFWTest.SameContraption(Owner, Child) end)
+
+                local Family = Owner:GetFamily()
+
+                expect(Child:GetParent()).to.equal(Owner)
+                expect(CFWTest.SameContraption(Owner, Child)).to.beTrue()
+                expect(Family).to.exist()
+                expect(Family and Family.ents[Owner]).to.beTrue()
+                expect(Family and Family.ents[Child]).to.beTrue()
+                expect(Family and Family.ents[Proxy]).to.beNil()
+                expect(next(Proxy:GetCFWLinks())).to.beNil()
+                expect(Proxy:CFW_GetContraption()).to.beNil()
+                expect(Proxy:GetFamily()).to.beNil()
 
                 done()
             end
