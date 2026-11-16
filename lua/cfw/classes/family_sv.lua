@@ -3,6 +3,9 @@
 CFW.Classes.Family = {}
 CFW.Families       = {}
 
+local EntityFamilies = {}
+CFW.EntityFamilies   = EntityFamilies
+
 function CFW.Classes.Family.create(ancestor)
     local fam = {
         count       = 0,
@@ -55,7 +58,7 @@ do -- Class def
         self.count        = self.count + 1
         self.ents[entity] = true
 
-        entity._family = self
+        EntityFamilies[entity] = self
 
         local className = entity:GetClass()
         self.entsbyclass[className] = self.entsbyclass[className] or {}
@@ -81,7 +84,7 @@ do -- Class def
         self.count        = self.count - 1
         self.ents[entity] = nil
 
-        entity._family = nil
+        EntityFamilies[entity] = nil
 
         local entValid    = IsValid(entity)
         local className   = entValid and entity:GetClass() or ""
@@ -139,16 +142,16 @@ do
     local ENT = FindMetaTable("Entity")
 
     function ENT:GetFamily()
-        return self._family
+        return EntityFamilies[self]
     end
 
     function ENT:GetAncestor()
-        local Family = self._family
+        local Family = EntityFamilies[self]
         return Family and Family.ancestor or self
     end
 
     function ENT:SetFamily(newFamily)
-        local oldFamily = self._family
+        local oldFamily = EntityFamilies[self]
 
         if oldFamily then
             oldFamily:Sub(self)
@@ -166,7 +169,7 @@ do
     end
 
     function ENT:GetFamilyChildren()
-        local Family = self._family
+        local Family = EntityFamilies[self]
         return Family and Family.children or self:GetChildren()
     end
 end

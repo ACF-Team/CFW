@@ -3,6 +3,9 @@
 CFW.Contraptions        = {}
 CFW.Classes.Contraption = {}
 
+local EntityContraptions = {}
+CFW.EntityContraptions   = EntityContraptions
+
 function CFW.createContraption()
     local con  = {
         ents        = {},
@@ -21,23 +24,11 @@ function CFW.createContraption()
 end
 
 do -- Contraption getters and setters
-    local ENT              = FindMetaTable("Entity")
-    local Entity_GetTable  = ENT.GetTable
-
-    -- MARCH 4/16/2026
-    -- We're going to deprecate this function and remove it sometime within the next 3-4 months probably.
-    -- Appropriate announcement will be given out to potential consumers of the API soonish, and then I'll make this ErrorNoHaltWithStack
-    -- for a week or so, then remove it entirely. Use CFW_GetContraption as its replacement which is properly namespaced.
-    -- This function has caused headaches in other codebases (wiremod's cam controllers for example) and should've always been namedspaced...
-
+    local ENT = FindMetaTable("Entity")
 
     function ENT:CFW_GetContraption()
-        local SelfTbl = Entity_GetTable(self)
-        if not SelfTbl then return nil end
-        return SelfTbl._contraption
+        return EntityContraptions[self]
     end
-
-    ENT.GetContraption = ENT.CFW_GetContraption
 end
 
 do -- Class def
@@ -59,9 +50,9 @@ do -- Class def
     end
 
     function CLASS:Add(ent)
-        ent._contraption = self
-        self.ents[ent]   = true
-        self.count       = self.count + 1
+        EntityContraptions[ent] = self
+        self.ents[ent]          = true
+        self.count              = self.count + 1
 
         local className = ent:GetClass()
         self.entsbyclass[className] = self.entsbyclass[className] or {}
@@ -71,9 +62,9 @@ do -- Class def
     end
 
     function CLASS:Sub(ent)
-        ent._contraption = nil
-        self.ents[ent]   = nil
-        self.count       = self.count - 1
+        EntityContraptions[ent] = nil
+        self.ents[ent]          = nil
+        self.count              = self.count - 1
 
         local className   = ent:GetClass()
         local entsByClass = self.entsbyclass[className]

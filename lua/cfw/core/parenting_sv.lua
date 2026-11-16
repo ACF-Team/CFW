@@ -265,7 +265,8 @@ hook.Add("EntityRemoved", "cfw.entityRemoved", function(ent)
 
     if not next(links) then return end
 
-    for index in pairs(links) do
+    for index, link in pairs(links) do
+        link.count = 1
         disconnect(ent, index)
     end
 end)

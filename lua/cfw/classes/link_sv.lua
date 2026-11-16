@@ -4,6 +4,9 @@
 
 CFW.Classes.Link = {}
 
+local EntityLinks = {}
+CFW.EntityLinks   = EntityLinks
+
 function CFW.createLink(a, b)
     local indexA, indexB = a:EntIndex(), b:EntIndex()
 
@@ -17,11 +20,14 @@ function CFW.createLink(a, b)
         created = CurTime(),
     }
 
-    a._links = a._links or {}
-    b._links = b._links or {}
+    local linksA = EntityLinks[a] or {}
+    local linksB = EntityLinks[b] or {}
 
-    a._links[indexB] = link
-    b._links[indexA] = link
+    EntityLinks[a] = linksA
+    EntityLinks[b] = linksB
+
+    linksA[indexB] = link
+    linksB[indexA] = link
 
     setmetatable(link, CFW.Classes.Link)
 
@@ -53,11 +59,31 @@ do -- Class def
         local contraptionPopped = false
         local entA, entB        = self.entA, self.entB
         local indexA, indexB    = self.indexA, self.indexB
+        local linksA, linksB    = EntityLinks[entA], EntityLinks[entB]
+        local emptyA, emptyB    = true, true
+
+        if linksA then
+            linksA[indexB] = nil
+
+            if next(linksA) then
+                emptyA = false
+            else
+                EntityLinks[entA] = nil
+            end
+        end
+
+        if linksB then
+            linksB[indexA] = nil
+
+            if next(linksB) then
+                emptyB = false
+            else
+                EntityLinks[entB] = nil
+            end
+        end
 
         if IsValid(entA) then
-            entA._links[indexB] = nil
-
-            if not next(entA._links) then
+            if emptyA then
                 -- It's important that the entity is removed from the family first, then the contraption in that order
                 entA:SetFamily(nil)
                 entA:CFW_GetContraption():Sub(entA)
@@ -69,9 +95,7 @@ do -- Class def
         end
 
         if IsValid(entB) then
-            entB._links[indexA] = nil
-
-            if not next(entB._links) then
+            if emptyB then
                 entB:SetFamily(nil)
                 entB:CFW_GetContraption():Sub(entB)
 
@@ -89,11 +113,12 @@ do
     local ENT = FindMetaTable("Entity")
 
     function ENT:GetCFWLink(other) -- Returns the link object between this and other
-        return self._links and self._links[other:EntIndex()] or nil
+        local links = EntityLinks[self]
+        return links and links[other:EntIndex()] or nil
     end
 
     function ENT:GetCFWLinks() -- Creates a shallow copy of the links table
-        local links = self._links
+        local links = EntityLinks[self]
         local out   = {}
 
         if links then

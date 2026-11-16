@@ -6,16 +6,21 @@ local function floodFill(source, sinkIndex)
     while next(open) do
         local entIndex = next(open) -- entIndex, entLink
 
-        open[entIndex]   = nil
-        closed[entIndex] = true
+        open[entIndex] = nil
 
-        closedCount = closedCount + 1
+        local neighbors = CFW.EntityLinks[Entity(entIndex)]
 
-        if entIndex == sinkIndex then return true, closed end
+        if neighbors then
+            closed[entIndex] = true
 
-        for neighborIndex in pairs(Entity(entIndex)._links) do -- neighborIndex, neighborLink
-            if not closed[neighborIndex] then
-                open[neighborIndex] = true
+            closedCount = closedCount + 1
+
+            if entIndex == sinkIndex then return true, closed end
+
+            for neighborIndex in pairs(neighbors) do -- neighborIndex, neighborLink
+                if not closed[neighborIndex] then
+                    open[neighborIndex] = true
+                end
             end
         end
     end
@@ -65,11 +70,8 @@ end
 function CFW.disconnect(entA, indexB)
     if entA:EntIndex() == indexB then return end -- Should not happen normally, but ragdolls allow you to constrain to other bones on the same ragdoll, and it is the same entity
 
-    -- Don't soft error because if _links isn't present then it's a deeper CFW issue, nothing without a _links table should be able to reach this point at all
-    local links = entA._links
-    if not links then ErrorNoHaltWithStack("Contraption Framework Error: Entity had no links. This error generally indicates a deeper problem with CFW.") end
-
-    local link = links[indexB]
+    local links = CFW.EntityLinks[entA]
+    local link  = links and links[indexB]
 
     if not link then return end -- There's nothing to disconnect here
 
