@@ -61,174 +61,257 @@ function CFW.addParentDetour(class, variable)
     end
 end
 
+-- What CFW sees as an engine parent: detour targets, and owners instead of their proxies
+local function logicalParent(parent)
+    if not IsValid(parent) then return parent end
+
+    local detour = detours[parent:GetClass()]
+
+    if detour then
+        parent = detour(parent) or parent
+    end
+
+    return toOwner(parent)
+end
+
+-- Requested parents with CFW callbacks, kept from preParent until the matching postParent
+local pendingParent = {}
+
+-- The engine's GetParent and GetChildren, set once the detours go in
+local getParent, getChildren, getMoveParent
+
+-- Children of an engine parent, keeping the shape GetChildren gave. Addons can replace GetChildren
+-- (Multi-Parent tool) with one that misses bone followers and keeps children that already moved away
+local function childrenOf(target)
+    local children = getChildren(target)
+    local keyed    = next(children) ~= nil and isentity((next(children)))
+    local out, seen = {}, {}
+
+    local function add(child)
+        if seen[child] or not IsValid(child) then return end
+        if getParent(child) ~= target and getMoveParent(child) ~= target then return end
+
+        seen[child] = true
+
+        if keyed then out[child] = child else out[#out + 1] = child end
+    end
+
+    for k, v in pairs(children) do add(isentity(k) and k or v) end
+
+    local tracked = target._cfwChildren
+
+    if tracked then
+        for child in pairs(tracked) do
+            if IsValid(child) and getParent(child) == target then add(child) else tracked[child] = nil end
+        end
+    end
+
+    return out
+end
+
+--[[
+    The hooks here are as follows:
+    (we need better docs! many such cases!)
+
+        - CFW_PreParentedTo: Allows the entity to block itself from being parented.
+        - CFW_PreParented: Allows the entity to block another entity from being parented to it.
+        - CFW_OnParentedTo: A non-blockable equiv. of PreParentedTo
+        - CFW_OnParented: A non-blockable equiv. of PreParented
+
+        The hook order is this:
+            - CFW_PreParentedTo on potential child (may block)
+            - CFW_PreParented on potential parent (may block)
+            - If a valid old parent exists, CFW_OnParented(child, false)
+            - ACTUAL SET PARENT HAPPENS
+            - If a valid new parent, call CFW_OnParented
+            - Call self OnParentedTo
+
+        preParent runs everything before the engine call and postParent everything after it.
+]]
+
+-- Returns false to block, otherwise the parent the engine should actually attach to
+local function preParent(self, oldParent, newParent, newAttach, ...)
+    -- Check if the entity is able to be a child to this parent or not.
+    if self.CFW_PreParentedTo and self:CFW_PreParentedTo(oldParent, newParent, newAttach, ...) == false then
+        return false
+    end
+
+    local savedParent
+
+    if IsValid(newParent) then
+        -- Store savedParent so we can do CFW_PreParented and CFW_OnParented later on the actual target
+        if newParent.CFW_OnParented or newParent.CFW_PreParented then
+            savedParent = newParent
+        end
+
+        -- Detour targets are logical parents
+        local detour = detours[newParent:GetClass()]
+
+        if detour then
+            newParent = detour(newParent) or newParent
+        end
+
+        -- If parenting to an owner, attach to its proxy in the engine
+        newParent = toProxy(newParent)
+    end
+
+    -- Block parenting to self (why doesn't this just happen earlier on?? that case would never be valid!)
+    if self == newParent then return false end
+
+    -- Check if the parent is willing to accept this child or not
+    if IsValid(savedParent) and savedParent.CFW_PreParented and savedParent:CFW_PreParented(self) == false then
+        return false
+    end
+
+    -- The engine breaks a cycle by unparenting the new parent's ancestor that hangs off self, without going through Lua
+    local ancestor = newParent
+
+    while IsValid(ancestor) do
+        local up = getParent(ancestor)
+
+        if up == self then
+            ancestor:SetParent(nil)
+            break
+        end
+
+        ancestor = up
+    end
+
+    -- At this point on, nothing else will block the parenting call
+    -- Pre-deparenting hook
+    -- MARCH: Changed this to not check "not validNewParent" (didn't really make sense... and didn't allow deparenting checks unless there was no valid parent??)
+    if IsValid(oldParent) and oldParent.CFW_OnParented then
+        oldParent:CFW_OnParented(self, false)
+    end
+
+    pendingParent[self] = savedParent
+
+    return newParent
+end
+
+-- oldParent and newParent are engine parents, the proxy rather than its owner
+local function postParent(self, oldParent, newParent)
+    local savedParent = pendingParent[self]
+    pendingParent[self] = nil
+
+    if IsValid(oldParent) and oldParent._cfwChildren then oldParent._cfwChildren[self] = nil end
+    if IsValid(newParent) then
+        newParent._cfwChildren = newParent._cfwChildren or {}
+        newParent._cfwChildren[self] = true
+    end
+
+    -- Hook for post-new-child
+    if IsValid(savedParent) and savedParent.CFW_OnParented then
+        savedParent:CFW_OnParented(self, true)
+    end
+
+    -- Hook for post-new-parent
+    if self.CFW_OnParentedTo then
+        self:CFW_OnParentedTo(oldParent, newParent)
+    end
+
+    local validOldParent, validNewParent = IsValid(oldParent), IsValid(newParent)
+
+    if self._cfwRemoved then return end -- Removed by an undo
+    if oldParent == newParent then return end
+    if (validOldParent and oldParent:IsPlayer()) or (validNewParent and newParent:IsPlayer()) then return end
+    if (validOldParent and oldParent:IsNPC()) or (validNewParent and newParent:IsNPC()) then return end
+    if (validOldParent and oldParent:IsNextBot()) or (validNewParent and newParent:IsNextBot()) then return end
+
+    local entClass = self:GetClass()
+    if filter[entClass] then return end
+
+    -- Hide transform proxies from CFW: the link, family, and contraption all use the
+    -- logical parent, while the engine attach may use the proxy
+    local logicalOldParent = logicalParent(oldParent)
+    local logicalNewParent = logicalParent(newParent)
+
+    -- Handle the edge case where an entity was originally parented in-engine but is being reparented in the same tick before we could even detect the old parent
+    local isUnlinkedSpecialEngineEnt = validOldParent and specialEngineEnts[entClass] and not self:GetCFWLink(logicalOldParent)
+
+    if validOldParent and not isUnlinkedSpecialEngineEnt then disconnect(self, logicalOldParent:EntIndex()) end
+    if IsValid(logicalNewParent) then connect(self, logicalNewParent) end
+
+    if self.CFW_NO_FAMILY_TRAVERSAL then return end
+
+    if IsValid(logicalNewParent) then
+        local newParentFamily = logicalNewParent:GetFamily() or CFW.Classes.Family.create(logicalNewParent)
+
+        -- A new family finds its members through GetChildren, which addons can replace with one that misses bone followers
+        if self:GetFamily() ~= newParentFamily then
+            self:SetFamily(newParentFamily)
+        end
+    else
+        self:SetFamily(nil)
+    end
+end
+
 hook.Add("Initialize", "CFW", function()
     timer.Simple(0, function()
-        local ENT        = FindMetaTable("Entity")
-        local setParent  = ENT.SetParent
-        local getParent  = ENT.GetParent
-        local getChildren = ENT.GetChildren
+        local ENT = FindMetaTable("Entity")
 
-        --[[
-            The hooks here are as follows:
-            (we need better docs! many such cases!)
+        getParent     = ENT.GetParent
+        getChildren   = ENT.GetChildren
+        getMoveParent = ENT.GetMoveParent
 
-                - CFW_PreParentedTo: Allows the entity to block itself from being parented.
-                - CFW_PreParented: Allows the entity to block another entity from being parented to it.
-                - CFW_OnParentedTo: A non-blockable equiv. of PreParentedTo
-                - CFW_OnParented: A non-blockable equiv. of PreParented
+        -- SetParent and FollowBone both parent in the engine
+        local function overrideParenting(name)
+            local engineFn = ENT[name]
 
-                The hook order is this:
-                    - CFW_PreParentedTo on potential child (may block)
-                    - CFW_PreParented on potential parent (may block)
-                    - If a valid old parent exists, CFW_OnParented(child, false)
-                    - ACTUAL SET PARENT HAPPENS
-                    - If a valid new parent, call CFW_OnParented
-                    - Call self OnParentedTo
-        ]]
-        function ENT:SetParent(newParent, newAttach, ...)
-            local savedParent
-            local oldParent = getParent(self)
-            local validNewParent = IsValid(newParent)
-            local validOldParent = IsValid(oldParent)
+            ENT[name] = function(self, newParent, newAttach, ...)
+                local oldParent    = getParent(self)
+                local engineParent = preParent(self, oldParent, newParent, newAttach, ...)
 
-            -- Hide transform proxies from CFW: the link, family, and contraption all use the
-            -- logical parent, while the engine attach may use the proxy (its owner transforms
-            -- its children through the proxy)
-            local logicalNewParent = newParent
-            local logicalOldParent = self:GetParent()
+                if engineParent == false then return end
 
-            -- Check if the entity is able to be a child to this parent or not.
-            if self.CFW_PreParentedTo and self:CFW_PreParentedTo(oldParent, newParent, newAttach, ...) == false then
-                return
-            end
-
-            -- If a valid new parent, get any entity detours that may be present for the new parents class
-            if validNewParent then
-                local detour = detours[newParent:GetClass()]
-
-                -- Store savedParent so we can do CFW_PreParented and CFW_OnParented later on the actual target
-                if newParent.CFW_OnParented or newParent.CFW_PreParented then
-                    savedParent = newParent
-                end
-
-                -- Set newParent to detour
-                if detour then
-                    -- march note: shouldn't we be setting validNewParent again here?
-                    -- won't do it for now to avoid breaking anything, but seems like an obvious one
-                    newParent        = detour(newParent) or newParent
-                    logicalNewParent = newParent -- Detour targets are logical parents
-                end
-
-                -- If parenting directly to a proxy, the logical parent is its owner
-                local owner = toOwner(newParent)
-
-                if owner ~= newParent then
-                    logicalNewParent = owner
-                end
-
-                -- If parenting to an owner, attach to its proxy in the engine
-                local proxy = toProxy(newParent)
-
-                if proxy ~= newParent then
-                    newParent      = proxy
-                    validNewParent = IsValid(newParent)
-                end
-            end
-
-            -- Block parenting to self (why doesn't this just happen earlier on?? that case would never be valid!)
-            if self == newParent then return end
-
-            local validSavedParent = IsValid(savedParent)
-
-            -- Check if the parent is willing to accept this child or not
-            if validSavedParent and savedParent.CFW_PreParented and savedParent:CFW_PreParented(self) == false then
-                return
-            end
-
-            -- At this point on, nothing else will block the parenting call
-            -- Pre-deparenting hook
-            -- MARCH: Changed this to not check "not validNewParent" (didn't really make sense... and didn't allow deparenting checks unless there was no valid parent??)
-            if validOldParent and oldParent.CFW_OnParented then
-                oldParent:CFW_OnParented(self, false)
-            end
-
-            -- Actual setparent call
-            setParent(self, newParent, newAttach, ...)
-
-            -- Hook for post-new-child
-            if validSavedParent and savedParent.CFW_OnParented then
-                savedParent:CFW_OnParented(self, true)
-            end
-
-            -- Hook for post-new-parent
-            if self.CFW_OnParentedTo then
-                self:CFW_OnParentedTo(oldParent, newParent)
-            end
-
-            if self._cfwRemoved then return end -- Removed by an undo
-            if oldParent == newParent then return end
-            if (validOldParent and oldParent:IsPlayer()) or (validNewParent and newParent:IsPlayer()) then return end
-            if (validOldParent and oldParent:IsNPC()) or (validNewParent and newParent:IsNPC()) then return end
-            if (validOldParent and oldParent:IsNextBot()) or (validNewParent and newParent:IsNextBot()) then return end
-
-            local entClass = self:GetClass()
-            if filter[entClass] then return end
-
-            -- Handle the edge case where an entity was originally parented in-engine but is being reparented in the same tick before we could even detect the old parent
-            local isUnlinkedSpecialEngineEnt = validOldParent and specialEngineEnts[entClass] and not self:GetCFWLink(logicalOldParent)
-
-            if validOldParent and not isUnlinkedSpecialEngineEnt then disconnect(self, logicalOldParent:EntIndex(), isParent) end
-            if IsValid(logicalNewParent) then connect(self, logicalNewParent, isParent) end
-
-            if self.CFW_NO_FAMILY_TRAVERSAL then return end
-
-            if IsValid(logicalNewParent) then
-                local newParentFamily = logicalNewParent:GetFamily()
-
-                if newParentFamily then
-                    self:SetFamily(newParentFamily)
-                else
-                    CFW.Classes.Family.create(logicalNewParent)
-                end
-            else
-                self:SetFamily(nil)
+                engineFn(self, engineParent, newAttach, ...)
+                postParent(self, oldParent, engineParent)
             end
         end
 
+        overrideParenting("SetParent")
+        overrideParenting("FollowBone")
+
         function ENT:GetParent()
-            local parent = getParent(self)
-
-            if IsValid(parent) then
-                local detour = detours[parent:GetClass()]
-
-                if detour then
-                    parent = detour(parent) or parent
-                end
-
-                -- If the engine parent is a transform proxy, report its owner instead
-                local owner = toOwner(parent)
-
-                if owner ~= parent then
-                    parent = owner
-                end
-            end
-
-            return parent
+            return logicalParent(getParent(self))
         end
 
         function ENT:GetChildren()
             -- A transform-proxy owner's children actually live on its proxy
-            local proxy = toProxy(self)
-
-            if proxy ~= self then
-                return getChildren(proxy)
-            end
-
-            return getChildren(self)
+            return childrenOf(toProxy(self))
         end
     end)
 
     hook.Remove("Initialize", "CFW")
+end)
+
+-- The parent inputs (Fire, map I/O, wire) never call the Lua functions, so do them through SetParent instead
+hook.Add("AcceptInput", "CFW", function(ent, input, activator, caller, value)
+    input = string.lower(input)
+
+    if input == "clearparent" then
+        ent:SetParent(nil)
+        return true
+    end
+
+    if input ~= "setparent" then return end
+
+    if not value or value == "" then
+        ent:SetParent(nil)
+        return true
+    end
+
+    local target
+    if value == "!activator" then target = activator
+    elseif value == "!caller" then target = caller
+    elseif value == "!self" then target = ent
+    else target = ents.FindByName(value)[1] end
+
+    -- Unknown names go to the engine, which warns about the bad parent
+    if not IsValid(target) then return end
+
+    ent:SetParent(target)
+    return true
 end)
 
 -- Attempting to handle some entities that are parented in the engine before we can reach them
