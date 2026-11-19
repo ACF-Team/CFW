@@ -84,7 +84,7 @@ local getParent, getChildren, getMoveParent
 -- (Multi-Parent tool) with one that misses bone followers and keeps children that already moved away
 local function childrenOf(target)
     local children = getChildren(target)
-    local keyed    = next(children) ~= nil and isentity((next(children)))
+    local keyed    = next(children) ~= nil and isentity(next(children))
     local out, seen = {}, {}
 
     local function add(child)
