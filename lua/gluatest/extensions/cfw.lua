@@ -117,6 +117,7 @@ function CFWTest.RecordHooks(HookNames, Snapshot)
 end
 
 -- Returns the entries in Log whose name matches and whose arguments include Subject
+-- rawequal because every removed entity == every other removed entity
 function CFWTest.Filter(Log, HookName, Subject)
     local Out = {}
 
@@ -127,7 +128,7 @@ function CFWTest.Filter(Log, HookName, Subject)
             local Found = false
 
             for _, Arg in pairs(Entry.args) do
-                if Arg == Subject then Found = true break end
+                if rawequal(Arg, Subject) then Found = true break end
             end
 
             if not Found then continue end
@@ -146,7 +147,7 @@ function CFWTest.IndexOf(Log, HookName, Subject)
             if Subject == nil then return I end
 
             for _, Arg in pairs(Entry.args) do
-                if Arg == Subject then return I end
+                if rawequal(Arg, Subject) then return I end
             end
         end
     end

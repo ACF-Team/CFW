@@ -52,6 +52,15 @@ do -- Class def
     end
 
     function CLASS:Add(entity, isAncestor)
+        -- A root parented to an ent with no family is still in its old one here
+        local oldFamily = entity._family
+
+        if oldFamily and oldFamily ~= self then
+            oldFamily:Sub(entity)
+
+            if oldFamily.count <= 1 then oldFamily:Delete() end
+        end
+
         self.count        = self.count + 1
         self.ents[entity] = true
 
@@ -78,6 +87,9 @@ do -- Class def
     end
 
     function CLASS:Sub(entity, isAncestor)
+        -- The root gets subbed when it leaves its family, then again by Delete
+        if not self.ents[entity] then return end
+
         self.count        = self.count - 1
         self.ents[entity] = nil
 

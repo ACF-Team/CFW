@@ -355,7 +355,7 @@ return {
         },
 
         {
-            name = "Removing the family root subs each surviving member exactly once",
+            name = "Removing the family root subs each member exactly once",
             async = true,
             coroutine = true,
             timeout = 5,
@@ -377,11 +377,75 @@ return {
                 CFWTest.WaitUntil(function() return B:GetFamily() == nil and C:GetFamily() == nil end)
 
                 -- While the root's links are torn down one at a time, its children are still
-                -- parented to it in the engine. Each surviving child must be subbed from the
+                -- parented to it in the engine. Each member must be subbed from the
                 -- family exactly once, and the family deleted exactly once
+                expect(#CFWTest.Filter(Log, "cfw.family.subbed", A)).to.equal(1)
                 expect(#CFWTest.Filter(Log, "cfw.family.subbed", B)).to.equal(1)
                 expect(#CFWTest.Filter(Log, "cfw.family.subbed", C)).to.equal(1)
                 expect(#CFWTest.Filter(Log, "cfw.family.deleted")).to.equal(1)
+
+                done()
+            end
+        },
+
+        {
+            name = "Parenting a family root into another family subs each of its members once",
+            async = true,
+            coroutine = true,
+            timeout = 5,
+            func = function(State)
+                CFWTest.WaitForReady()
+
+                local A, B, X, Y = CFWTest.SpawnProp(State), CFWTest.SpawnProp(State), CFWTest.SpawnProp(State), CFWTest.SpawnProp(State)
+
+                Parent(B, A)
+                Parent(Y, X)
+
+                local Old    = A:GetFamily()
+                local Family = X:GetFamily()
+                local Log    = Record()
+
+                Parent(A, X)
+
+                expect(A:GetFamily()).to.equal(Family)
+                expect(B:GetFamily()).to.equal(Family)
+                expect(Family.count).to.equal(4)
+                expect(#CFWTest.Filter(Log, "cfw.family.subbed", A)).to.equal(1)
+                expect(#CFWTest.Filter(Log, "cfw.family.subbed", B)).to.equal(1)
+                expect(#CFWTest.Filter(Log, "cfw.family.deleted", Old)).to.equal(1)
+
+                done()
+            end
+        },
+
+        {
+            name = "Parenting a family root to an entity with no family moves the whole family under it",
+            async = true,
+            coroutine = true,
+            timeout = 5,
+            func = function(State)
+                CFWTest.WaitForReady()
+
+                local A, B, X = CFWTest.SpawnProp(State), CFWTest.SpawnProp(State), CFWTest.SpawnProp(State)
+
+                Parent(B, A)
+
+                local Old = A:GetFamily()
+                local Log = Record()
+
+                Parent(A, X)
+
+                local Family = X:GetFamily()
+                local Con    = X:CFW_GetContraption()
+
+                expect(Family).toNot.equal(Old)
+                expect(Family:GetRoot()).to.equal(X)
+                expect(B:GetFamily()).to.equal(Family)
+                expect(Family.count).to.equal(3)
+                expect(Con.families[Old]).to.beNil()
+                expect(#CFWTest.Filter(Log, "cfw.family.subbed", A)).to.equal(1)
+                expect(#CFWTest.Filter(Log, "cfw.family.subbed", B)).to.equal(1)
+                expect(#CFWTest.Filter(Log, "cfw.family.deleted", Old)).to.equal(1)
 
                 done()
             end
