@@ -503,5 +503,178 @@ return {
                 done()
             end
         },
+
+        {
+            name = "Cutting a few entities off keeps the rest in the original contraption",
+            async = true,
+            coroutine = true,
+            timeout = 5,
+            func = function(State)
+                CFWTest.WaitForReady()
+
+                local A, B, C, D = CFWTest.SpawnProp(State), CFWTest.SpawnProp(State), CFWTest.SpawnProp(State), CFWTest.SpawnProp(State)
+                local X, Y       = CFWTest.SpawnProp(State), CFWTest.SpawnProp(State)
+
+                -- A is Ent1 of the cut, so the bigger side is the one the cut starts from
+                CFWTest.WeldChain(A, B, C, D)
+                CFWTest.WeldChain(X, Y)
+
+                local Cut = CFWTest.Weld(A, X)
+                CFWTest.WaitUntil(function() return CFWTest.SameContraption(A, B, C, D, X, Y) end)
+
+                local Original = A:CFW_GetContraption()
+                local Log      = Record()
+
+                Cut:Remove()
+                CFWTest.WaitUntil(function() return #CFWTest.Filter(Log, "cfw.contraption.split") > 0 end)
+
+                expect(D:CFW_GetContraption()).to.equal(Original)
+                expect(CFWTest.SameContraption(A, B, C, D)).to.beTrue()
+                expect(CFWTest.SameContraption(X, Y)).to.beTrue()
+                expect(X:CFW_GetContraption()).notTo.equal(Original)
+                expect(#CFWTest.Filter(Log, "cfw.contraption.entityRemoved")).to.equal(2)
+
+                done()
+            end
+        },
+
+        {
+            name = "Removing a whole contraption at once leaves nothing registered, however many constraints join two entities",
+            async = true,
+            coroutine = true,
+            timeout = 5,
+            func = function(State)
+                CFWTest.WaitForReady()
+
+                local B, S, X, Y = CFWTest.SpawnProp(State), CFWTest.SpawnProp(State), CFWTest.SpawnProp(State), CFWTest.SpawnProp(State)
+
+                CFWTest.Weld(B, S)
+                constraint.Rope(B, S, 0, 0, vector_origin, vector_origin, 100, 0, 0, 1, "cable/rope", false)
+                constraint.Ballsocket(B, S, 0, 0, vector_origin, 0, 0, 0)
+                CFWTest.Weld(B, X)
+                CFWTest.Weld(X, Y)
+                CFWTest.WaitUntil(function() return CFWTest.SameContraption(B, S, X, Y) end)
+
+                local Log = Record()
+                local Seen = { B:CFW_GetContraption() }
+
+                for _, Ent in ipairs({ B, S, X, Y }) do Ent:Remove() end
+                CFWTest.WaitTicks(3)
+
+                for _, Entry in ipairs(CFWTest.Filter(Log, "cfw.contraption.created")) do Seen[#Seen + 1] = Entry.args[1] end
+
+                for _, Con in ipairs(Seen) do
+                    expect(CFW.Contraptions[Con]).to.beNil()
+                end
+
+                done()
+            end
+        },
+
+        {
+            name = "A constraint to an entity removed in the same tick doesn't connect anything",
+            async = true,
+            coroutine = true,
+            timeout = 5,
+            func = function(State)
+                CFWTest.WaitForReady()
+
+                local A, B = CFWTest.SpawnProp(State), CFWTest.SpawnProp(State)
+
+                CFWTest.Weld(A, B)
+                B:Remove()
+                CFWTest.WaitTicks(3)
+
+                expect(A:CFW_GetContraption()).to.beNil()
+
+                done()
+            end
+        },
+
+        {
+            name = "An AdvDupe2 undo leaves what it didn't remove tracked normally",
+            async = true,
+            coroutine = true,
+            timeout = 5,
+            func = function(State)
+                CFWTest.WaitForReady()
+
+                local A, B = CFWTest.SpawnProp(State), CFWTest.SpawnProp(State)
+                local P, Q = CFWTest.SpawnProp(State), CFWTest.SpawnProp(State)
+
+                -- A and B are the "paste", P was welded on afterwards and Q hangs off P
+                CFWTest.WeldChain(A, B)
+                CFWTest.Weld(P, A)
+                Q:SetParent(P)
+                CFWTest.WaitUntil(function() return CFWTest.SameContraption(A, B, P, Q) end)
+
+                -- What undo.Do_Undo does, without the net message to an owner the test doesn't have
+                hook.Run("PreUndo", { Name = "AdvDupe2", Entities = { A, B } })
+                A:Remove()
+                B:Remove()
+                CFWTest.WaitUntil(function() return not IsValid(A) and not IsValid(B) end)
+                CFWTest.WaitTicks(1)
+
+                local Con = P:CFW_GetContraption()
+
+                expect(Con).to.exist()
+                expect(Con and CFW.Contraptions[Con]).to.beTrue()
+                expect(Q:CFW_GetContraption()).to.equal(Con)
+
+                -- Reparenting afterwards still reaches CFW
+                Q:SetParent(nil)
+                CFWTest.WaitTicks(2)
+
+                expect(Q:CFW_GetContraption()).to.beNil()
+                expect(P:CFW_GetContraption()).to.beNil()
+                expect(P:GetFamily()).to.beNil()
+
+                done()
+            end
+        },
+
+        {
+            name = "A stock duplicator copy of entities without a factory doesn't share the original's contraption",
+            async = true,
+            coroutine = true,
+            timeout = 5,
+            func = function(State)
+                CFWTest.WaitForReady()
+
+                -- The stock duplicator copies the whole Lua table of a class it has no factory for
+                local Class = "cfw_test_dupe"
+                scripted_ents.Register({
+                    Type = "anim", Base = "base_anim",
+                    Initialize = function(self) self:PhysicsInit(SOLID_VPHYSICS) end,
+                }, Class)
+
+                local A, B, C = CFWTest.SpawnProp(State, Class), CFWTest.SpawnProp(State, Class), CFWTest.SpawnProp(State, Class)
+
+                CFWTest.Weld(A, B)
+                C:SetParent(B)
+                CFWTest.WaitUntil(function() return CFWTest.SameContraption(A, B, C) end)
+
+                local Original = A:CFW_GetContraption()
+                local Count    = Original.count
+                local Copy     = duplicator.Copy(A)
+                local Created  = duplicator.Paste(nil, Copy.Entities, Copy.Constraints)
+
+                for _, Ent in pairs(Created) do State.Ents[#State.Ents + 1] = Ent end
+                CFWTest.WaitTicks(3)
+
+                expect(Original.count).to.equal(Count)
+                expect(A:CFW_GetContraption()).to.equal(Original)
+
+                for _, Ent in pairs(Created) do
+                    local Con = Ent:CFW_GetContraption()
+
+                    expect(Con).notTo.equal(Original)
+                    expect(Original.ents[Ent]).to.beNil()
+                    if Con then expect(CFW.Contraptions[Con]).to.beTrue() end
+                end
+
+                done()
+            end
+        },
     }
 }

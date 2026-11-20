@@ -34,7 +34,7 @@ do -- Class def
     CLASS.__index = CLASS -- why?
 
     function CLASS:Init()
-        return link
+        return self
     end
 
     function CLASS:Add()

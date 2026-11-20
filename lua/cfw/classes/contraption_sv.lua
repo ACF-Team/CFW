@@ -67,6 +67,10 @@ do -- Class def
         self.entsbyclass[className] = self.entsbyclass[className] or {}
         self.entsbyclass[className][ent] = true
 
+        -- A family belongs to whichever contraption its root is in
+        local family = ent._family
+        if family and family.ancestor == ent then family:SetContraption(self) end
+
         hook.Run("cfw.contraption.entityAdded", self, ent)
     end
 
@@ -85,6 +89,9 @@ do -- Class def
                 self.entsbyclass[className] = nil
             end
         end
+
+        local family = ent._family
+        if family and family.ancestor == ent and family.contraption == self then family:SetContraption(nil) end
 
         hook.Run("cfw.contraption.entityRemoved", self, ent)
 

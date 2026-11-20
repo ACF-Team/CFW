@@ -74,11 +74,67 @@ local function logicalParent(parent)
     return toOwner(parent)
 end
 
+local function isCharacter(ent)
+    return IsValid(ent) and (ent:IsPlayer() or ent:IsNPC() or ent:IsNextBot())
+end
+
+-- The parent an entity's parent link was added for, so unparenting takes away exactly what parenting added
+-- Connects first so moving between parents in one contraption doesn't split it in between
+local function setLinkedParent(ent, parent)
+    local old = ent._cfwLinkedParent
+    if old == parent then return end
+
+    ent._cfwLinkedParent = parent
+
+    if IsValid(parent) then connect(ent, parent) end
+    if IsValid(old) and ent._links then disconnect(ent, old:EntIndex()) end
+end
+
+-- Brings an entity's parent link and family in line with its engine parent
+local function trackParent(ent, engineParent)
+    if isCharacter(ent) then return end
+    if filter[ent:GetClass()] then return end
+
+    -- Hide transform proxies from CFW: the link, family, and contraption all use the
+    -- logical parent, while the engine attach may use the proxy
+    -- Players, NPCs and nextbots never join a contraption, so parenting to one counts as unparenting
+    local parent = not isCharacter(engineParent) and logicalParent(engineParent) or nil
+
+    setLinkedParent(ent, IsValid(parent) and parent or nil)
+
+    if ent.CFW_NO_FAMILY_TRAVERSAL then return end
+
+    if IsValid(parent) then
+        local oldFamily    = ent:GetFamily()
+        local parentFamily = parent:GetFamily() or CFW.Classes.Family.create(parent)
+
+        if oldFamily == parentFamily then
+            -- Moving within a family still changes the parent chain of everything under ent, and family hooks are
+            -- the only thing that tells listeners (ACF_ParentState) about it
+            parentFamily:Sub(ent)
+            parentFamily:Add(ent)
+        elseif ent:GetFamily() ~= parentFamily then
+            -- A new family finds its members through GetChildren, which addons can replace with one that misses bone followers
+            ent:SetFamily(parentFamily)
+        end
+    else
+        ent:SetFamily(nil)
+    end
+end
+
 -- Requested parents with CFW callbacks, kept from preParent until the matching postParent
 local pendingParent = {}
 
 -- The engine's GetParent and GetChildren, set once the detours go in
 local getParent, getChildren, getMoveParent
+
+-- What an entity physically follows. SetMoveParent only changes this, GetParent keeps reporting the old parent
+local function effectiveParent(ent)
+    local moveParent = getMoveParent(ent)
+    if IsValid(moveParent) then return moveParent end
+
+    return getParent(ent)
+end
 
 -- Children of an engine parent, keeping the shape GetChildren gave. Addons can replace GetChildren
 -- (Multi-Parent tool) with one that misses bone followers and keeps children that already moved away
@@ -89,7 +145,7 @@ local function childrenOf(target)
 
     local function add(child)
         if seen[child] or not IsValid(child) then return end
-        if getParent(child) ~= target and getMoveParent(child) ~= target then return end
+        if effectiveParent(child) ~= target then return end
 
         seen[child] = true
 
@@ -102,7 +158,7 @@ local function childrenOf(target)
 
     if tracked then
         for child in pairs(tracked) do
-            if IsValid(child) and getParent(child) == target then add(child) else tracked[child] = nil end
+            if IsValid(child) and effectiveParent(child) == target then add(child) else tracked[child] = nil end
         end
     end
 
@@ -156,7 +212,8 @@ local function preParent(self, oldParent, newParent, newAttach, ...)
     end
 
     -- Block parenting to self (why doesn't this just happen earlier on?? that case would never be valid!)
-    if self == newParent then return false end
+    -- Its own proxy counts as self too
+    if self == newParent or (IsValid(newParent) and toOwner(newParent) == self) then return false end
 
     -- Check if the parent is willing to accept this child or not
     if IsValid(savedParent) and savedParent.CFW_PreParented and savedParent:CFW_PreParented(self) == false then
@@ -164,17 +221,27 @@ local function preParent(self, oldParent, newParent, newAttach, ...)
     end
 
     -- The engine breaks a cycle by unparenting the new parent's ancestor that hangs off self, without going through Lua
-    local ancestor = newParent
+    -- Children of an owner hang off its proxy. The engine would unparent the proxy from its owner there, which leaves
+    -- the owner logically parented to its own descendant, so unparent the entity hanging off the proxy instead
+    -- The engine checks the GetParent chain, and SetMoveParent can make what an entity follows differ from it,
+    -- so both chains get checked. Capped since SetMoveParent links the move hierarchy without a cycle check
+    local selfProxy = toProxy(self)
 
-    while IsValid(ancestor) do
-        local up = getParent(ancestor)
+    for _, step in ipairs({ getParent, effectiveParent }) do
+        local ancestor = newParent
 
-        if up == self then
-            ancestor:SetParent(nil)
-            break
+        for _ = 1, 1024 do
+            if not IsValid(ancestor) then break end
+
+            local up = step(ancestor)
+
+            if up == self or up == selfProxy then
+                ancestor:SetParent(nil)
+                break
+            end
+
+            ancestor = up
         end
-
-        ancestor = up
     end
 
     -- At this point on, nothing else will block the parenting call
@@ -190,14 +257,17 @@ local function preParent(self, oldParent, newParent, newAttach, ...)
 end
 
 -- oldParent and newParent are engine parents, the proxy rather than its owner
+-- CFW tracks what the engine actually did rather than what was asked
 local function postParent(self, oldParent, newParent)
     local savedParent = pendingParent[self]
     pendingParent[self] = nil
 
+    local followed = effectiveParent(self)
+
     if IsValid(oldParent) and oldParent._cfwChildren then oldParent._cfwChildren[self] = nil end
-    if IsValid(newParent) then
-        newParent._cfwChildren = newParent._cfwChildren or {}
-        newParent._cfwChildren[self] = true
+    if IsValid(followed) then
+        followed._cfwChildren = followed._cfwChildren or {}
+        followed._cfwChildren[self] = true
     end
 
     -- Hook for post-new-child
@@ -210,40 +280,9 @@ local function postParent(self, oldParent, newParent)
         self:CFW_OnParentedTo(oldParent, newParent)
     end
 
-    local validOldParent, validNewParent = IsValid(oldParent), IsValid(newParent)
+    if followed == oldParent then return end
 
-    if self._cfwRemoved then return end -- Removed by an undo
-    if oldParent == newParent then return end
-    if (validOldParent and oldParent:IsPlayer()) or (validNewParent and newParent:IsPlayer()) then return end
-    if (validOldParent and oldParent:IsNPC()) or (validNewParent and newParent:IsNPC()) then return end
-    if (validOldParent and oldParent:IsNextBot()) or (validNewParent and newParent:IsNextBot()) then return end
-
-    local entClass = self:GetClass()
-    if filter[entClass] then return end
-
-    -- Hide transform proxies from CFW: the link, family, and contraption all use the
-    -- logical parent, while the engine attach may use the proxy
-    local logicalOldParent = logicalParent(oldParent)
-    local logicalNewParent = logicalParent(newParent)
-
-    -- Handle the edge case where an entity was originally parented in-engine but is being reparented in the same tick before we could even detect the old parent
-    local isUnlinkedSpecialEngineEnt = validOldParent and specialEngineEnts[entClass] and not self:GetCFWLink(logicalOldParent)
-
-    if validOldParent and not isUnlinkedSpecialEngineEnt then disconnect(self, logicalOldParent:EntIndex()) end
-    if IsValid(logicalNewParent) then connect(self, logicalNewParent) end
-
-    if self.CFW_NO_FAMILY_TRAVERSAL then return end
-
-    if IsValid(logicalNewParent) then
-        local newParentFamily = logicalNewParent:GetFamily() or CFW.Classes.Family.create(logicalNewParent)
-
-        -- A new family finds its members through GetChildren, which addons can replace with one that misses bone followers
-        if self:GetFamily() ~= newParentFamily then
-            self:SetFamily(newParentFamily)
-        end
-    else
-        self:SetFamily(nil)
-    end
+    trackParent(self, followed)
 end
 
 hook.Add("Initialize", "CFW", function()
@@ -254,12 +293,15 @@ hook.Add("Initialize", "CFW", function()
         getChildren   = ENT.GetChildren
         getMoveParent = ENT.GetMoveParent
 
-        -- SetParent and FollowBone both parent in the engine
-        local function overrideParenting(name)
+        -- SetParent, FollowBone and SetMoveParent all attach in the engine
+        local function overrideParenting(name, needsParent)
             local engineFn = ENT[name]
 
             ENT[name] = function(self, newParent, newAttach, ...)
-                local oldParent    = getParent(self)
+                -- SetMoveParent can't unparent, it errors on its own
+                if needsParent and not IsValid(newParent) then return engineFn(self, newParent, newAttach, ...) end
+
+                local oldParent    = effectiveParent(self)
                 local engineParent = preParent(self, oldParent, newParent, newAttach, ...)
 
                 if engineParent == false then return end
@@ -271,9 +313,11 @@ hook.Add("Initialize", "CFW", function()
 
         overrideParenting("SetParent")
         overrideParenting("FollowBone")
+        overrideParenting("SetMoveParent", true)
 
+        -- What the entity is attached to, the same parent CFW tracks
         function ENT:GetParent()
-            return logicalParent(getParent(self))
+            return logicalParent(effectiveParent(self))
         end
 
         function ENT:GetChildren()
@@ -319,22 +363,13 @@ hook.Add("OnEntityCreated", "cfw.engineParentedEntityCreated", function(ent)
     if not specialEngineEnts[ent:GetClass()] then return end
 
     timer.Simple(0, function()
-        if not IsValid(ent) then return end
+        if not IsValid(ent) or ent:IsMarkedForDeletion() then return end
 
-        local parent = ent:GetParent()
-        if not IsValid(parent) or ent:GetCFWLink(parent) then return end
+        -- Map sprites can get here before the overrides are in
+        local parent = getMoveParent and effectiveParent(ent) or ent:GetParent()
+        if not IsValid(parent) then return end
 
-        connect(ent, parent)
-
-        if ent.CFW_NO_FAMILY_TRAVERSAL then return end
-
-        local parentFamily = parent:GetFamily()
-
-        if parentFamily then
-            ent:SetFamily(parentFamily)
-        else
-            CFW.Classes.Family.create(parent)
-        end
+        trackParent(ent, parent)
     end)
 end)
 
@@ -348,7 +383,8 @@ hook.Add("EntityRemoved", "cfw.entityRemoved", function(ent)
 
     if not next(links) then return end
 
+    -- Nothing stays connected to a removed entity, whatever made the connection
     for index in pairs(links) do
-        disconnect(ent, index)
+        disconnect(ent, index, true)
     end
 end)

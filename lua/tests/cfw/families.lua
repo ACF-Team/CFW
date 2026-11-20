@@ -450,5 +450,203 @@ return {
                 done()
             end
         },
+
+        {
+            name = "Removing the only child dissolves the parent's family",
+            async = true,
+            coroutine = true,
+            timeout = 5,
+            func = function(State)
+                CFWTest.WaitForReady()
+
+                local A, B = CFWTest.SpawnProp(State), CFWTest.SpawnProp(State)
+
+                Parent(B, A)
+
+                local Family = A:GetFamily()
+
+                B:Remove()
+                CFWTest.WaitTicks(2)
+
+                expect(A:GetFamily()).to.beNil()
+                expect(CFW.Families[Family]).to.beNil()
+
+                done()
+            end
+        },
+
+        {
+            name = "Removing a parent and its child in the same tick leaves no family behind",
+            async = true,
+            coroutine = true,
+            timeout = 5,
+            func = function(State)
+                CFWTest.WaitForReady()
+
+                local A, B, C = CFWTest.SpawnProp(State), CFWTest.SpawnProp(State), CFWTest.SpawnProp(State)
+
+                Parent(B, A)
+                Parent(C, B)
+
+                local Log = Record()
+
+                C:Remove()
+                B:Remove()
+                A:Remove()
+                CFWTest.WaitTicks(3)
+
+                local Families = { A:GetFamily() }
+                for _, Entry in ipairs(CFWTest.Filter(Log, "cfw.family.created")) do Families[#Families + 1] = Entry.args[1] end
+
+                for _, Family in ipairs(Families) do
+                    expect(CFW.Families[Family]).to.beNil()
+                end
+
+                done()
+            end
+        },
+
+        {
+            name = "Moving a child to another parent in the same family fires subbed then added for it and everything under it",
+            async = true,
+            coroutine = true,
+            timeout = 5,
+            func = function(State)
+                CFWTest.WaitForReady()
+
+                local A, B, C, D = CFWTest.SpawnProp(State), CFWTest.SpawnProp(State), CFWTest.SpawnProp(State), CFWTest.SpawnProp(State)
+
+                Parent(B, A)
+                Parent(C, A)
+                Parent(D, B)
+
+                local Family = A:GetFamily()
+                local Log    = Record()
+
+                B:SetParent(C)
+                CFWTest.WaitUntil(function() return #CFWTest.Filter(Log, "cfw.family.added", D) > 0 end)
+
+                expect(B:GetFamily()).to.equal(Family)
+                expect(D:GetFamily()).to.equal(Family)
+                expect(Family.count).to.equal(4)
+
+                -- Listeners recompute parent chains from these (ACF_ParentState)
+                for _, Ent in ipairs({ B, D }) do
+                    local Subbed = CFWTest.IndexOf(Log, "cfw.family.subbed", Ent)
+                    local Added  = CFWTest.IndexOf(Log, "cfw.family.added", Ent)
+
+                    expect(Subbed).to.exist()
+                    expect(Added).to.exist()
+                    expect(Subbed or math.huge).to.beLessThan(Added or 0)
+                end
+
+                expect(#CFWTest.Filter(Log, "cfw.family.subbed", C)).to.equal(0)
+
+                done()
+            end
+        },
+
+        {
+            name = "A family is listed by the contraption its root ends up in after a split",
+            async = true,
+            coroutine = true,
+            timeout = 5,
+            func = function(State)
+                CFWTest.WaitForReady()
+
+                local A, P = CFWTest.SpawnProp(State), CFWTest.SpawnProp(State)
+                local X, Y, Z = CFWTest.SpawnProp(State), CFWTest.SpawnProp(State), CFWTest.SpawnProp(State)
+
+                Parent(P, A)
+
+                local Cut = CFWTest.Weld(A, X)
+                CFWTest.WeldChain(X, Y, Z)
+                CFWTest.WaitUntil(function() return CFWTest.SameContraption(A, P, X, Y, Z) end)
+
+                local Family = A:GetFamily()
+
+                Cut:Remove()
+                CFWTest.WaitUntil(function() return A:CFW_GetContraption() ~= X:CFW_GetContraption() end)
+
+                local Own, Other = A:CFW_GetContraption(), X:CFW_GetContraption()
+
+                expect(Own and Own.families[Family]).to.beTrue()
+                expect(Other and Other.families[Family]).to.beNil()
+
+                done()
+            end
+        },
+
+        {
+            name = "An entity attached with SetMoveParent joins what it follows, and moves with it to a new one",
+            async = true,
+            coroutine = true,
+            timeout = 5,
+            func = function(State)
+                CFWTest.WaitForReady()
+
+                local A, B, C = CFWTest.SpawnProp(State), CFWTest.SpawnProp(State), CFWTest.SpawnProp(State)
+
+                C:SetMoveParent(A)
+                CFWTest.WaitUntil(function() return CFWTest.SameContraption(A, C) end)
+
+                expect(CFWTest.SameContraption(A, C)).to.beTrue()
+                expect(C:GetFamily()).to.exist()
+                expect(C:GetFamily()).to.equal(A:GetFamily())
+
+                -- GetParent still says A here, while C follows B
+                C:SetParent(A)
+                C:SetMoveParent(B)
+                CFWTest.WaitUntil(function() return CFWTest.SameContraption(B, C) end)
+
+                expect(CFWTest.SameContraption(B, C)).to.beTrue()
+                expect(A:CFW_GetContraption()).to.beNil()
+                expect(C:GetFamily()).to.equal(B:GetFamily())
+
+                C:SetParent(nil)
+                CFWTest.WaitTicks(2)
+
+                expect(C:CFW_GetContraption()).to.beNil()
+                expect(C:GetFamily()).to.beNil()
+
+                done()
+            end
+        },
+
+        {
+            name = "Parenting to an NPC takes the entity out of its old parent's contraption and family",
+            async = true,
+            coroutine = true,
+            timeout = 5,
+            func = function(State)
+                CFWTest.WaitForReady()
+
+                local A, B = CFWTest.SpawnProp(State), CFWTest.SpawnProp(State)
+                local NPC  = ents.Create("npc_kleiner")
+
+                NPC:SetPos(Vector(0, 0, 2200))
+                NPC:Spawn()
+                State.Ents[#State.Ents + 1] = NPC
+
+                Parent(B, A)
+
+                B:SetParent(NPC)
+                CFWTest.WaitTicks(2)
+
+                expect(B:GetFamily()).to.beNil()
+                expect(A:GetFamily()).to.beNil()
+                expect(B:CFW_GetContraption()).to.beNil()
+                expect(NPC:CFW_GetContraption()).to.beNil()
+
+                -- And back onto a prop from the NPC
+                B:SetParent(A)
+                CFWTest.WaitUntil(function() return CFWTest.SameContraption(A, B) end)
+
+                expect(CFWTest.SameContraption(A, B)).to.beTrue()
+                expect(B:GetFamily()).to.equal(A:GetFamily())
+
+                done()
+            end
+        },
     }
 }

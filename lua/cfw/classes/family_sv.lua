@@ -3,6 +3,20 @@
 CFW.Classes.Family = {}
 CFW.Families       = {}
 
+-- The engine keeps reporting an entity's parent and children while it's being removed
+local function isRemoving(ent)
+    return ent.CFW_REMOVING or ent:IsMarkedForDeletion()
+end
+
+local function hasLiveChild(ent)
+    for k, v in pairs(ent:GetChildren()) do
+        local child = isnumber(k) and v or k
+        if child ~= ent and IsValid(child) and not isRemoving(child) and not child.CFW_NO_FAMILY_TRAVERSAL then return true end
+    end
+
+    return false
+end
+
 function CFW.Classes.Family.create(ancestor)
     local fam = {
         count       = 0,
@@ -30,8 +44,7 @@ do -- Class def
     function CLASS:Init()
         CFW.Families[self] = true
 
-        local con = self.ancestor:CFW_GetContraption()
-        if con then con.families[self] = true end
+        self:SetContraption(self.ancestor:CFW_GetContraption())
 
         hook.Run("cfw.family.created", self)
     end
@@ -40,11 +53,21 @@ do -- Class def
         return self.ancestor
     end
 
+    -- The contraption that lists this family in con.families
+    -- The family keeps it, its root can already be in another contraption or none when the family goes
+    function CLASS:SetContraption(con)
+        local old = self.contraption
+        if old == con then return end
+
+        if old then old.families[self] = nil end
+        if con then con.families[self] = true end
+
+        self.contraption = con
+    end
+
     function CLASS:Delete()
         self:Sub(self.ancestor, true)
-
-        local con = self.ancestor:CFW_GetContraption()
-        if con then con.families[self] = nil end
+        self:SetContraption(nil)
 
         hook.Run("cfw.family.deleted", self)
 
@@ -52,6 +75,9 @@ do -- Class def
     end
 
     function CLASS:Add(entity, isAncestor)
+        -- Already a member, also stops a parent loop from recursing forever
+        if self.ents[entity] then return end
+
         -- A root parented to an ent with no family is still in its old one here
         local oldFamily = entity._family
 
@@ -172,7 +198,7 @@ do
             newFamily:Add(self)
         end
 
-        if not newFamily and not self.CFW_REMOVING and next(self:GetChildren()) then
+        if not newFamily and not isRemoving(self) and hasLiveChild(self) then
             CFW.Classes.Family.create(self)
         end
     end

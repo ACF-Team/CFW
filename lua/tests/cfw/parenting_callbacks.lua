@@ -331,5 +331,74 @@ return {
                 done()
             end
         },
+
+        {
+            name = "Parenting a proxy owner to something hanging off it unparents that instead of the proxy",
+            async = true,
+            coroutine = true,
+            timeout = 5,
+            func = function(State)
+                CFWTest.WaitForReady()
+
+                CFW.addTransformProxy(OwnerClass, "CFWTest_Proxy", ProxyClass, "CFWTest_Owner")
+
+                local Owner = CFWTest.SpawnProp(State, OwnerClass)
+                local Proxy = CFWTest.SpawnProp(State, ProxyClass)
+                local X, Y  = CFWTest.SpawnProp(State), CFWTest.SpawnProp(State)
+
+                Proxy.CFWTest_Owner = Owner
+                Proxy:SetParent(Owner)
+                Owner.CFWTest_Proxy = Proxy
+
+                X:SetParent(Owner)
+                Y:SetParent(X)
+                CFWTest.WaitUntil(function() return CFWTest.SameContraption(Owner, X, Y) end)
+
+                -- Owner -> Y -> X -> Owner without the cycle break
+                Owner:SetParent(Y)
+                CFWTest.WaitTicks(2)
+
+                local Family = Y:GetFamily()
+
+                expect(Proxy:GetParent()).to.equal(Owner)
+                expect(IsValid(X:GetParent())).to.beFalse()
+                expect(Y:GetParent()).to.equal(X)
+                expect(Owner:GetParent()).to.equal(Y)
+                expect(Family).to.exist()
+                expect(Family and Family:GetRoot()).to.equal(X)
+                expect(Owner:GetFamily()).to.equal(Family)
+                expect(Family and Family.count).to.equal(3)
+                expect(CFWTest.SameContraption(Owner, X, Y)).to.beTrue()
+
+                done()
+            end
+        },
+
+        {
+            name = "A proxy owner can't be parented to its own proxy",
+            async = true,
+            coroutine = true,
+            timeout = 5,
+            func = function(State)
+                CFWTest.WaitForReady()
+
+                CFW.addTransformProxy(OwnerClass, "CFWTest_Proxy", ProxyClass, "CFWTest_Owner")
+
+                local Owner = CFWTest.SpawnProp(State, OwnerClass)
+                local Proxy = CFWTest.SpawnProp(State, ProxyClass)
+
+                Proxy.CFWTest_Owner = Owner
+                Proxy:SetParent(Owner)
+                Owner.CFWTest_Proxy = Proxy
+
+                Owner:SetParent(Proxy)
+                CFWTest.WaitTicks(2)
+
+                expect(IsValid(Owner:GetParent())).to.beFalse()
+                expect(Proxy:GetParent()).to.equal(Owner)
+
+                done()
+            end
+        },
     }
 }
