@@ -3,8 +3,9 @@
 local PHYS    = FindMetaTable("PhysObj")
 local setMass = setMass or PHYS.SetMass
 
-function PHYS:SetMass(newMass)
-    local ent     = self:GetEntity()
+-- Callers that already have the entity can pass it
+function PHYS:SetMass(newMass, ent)
+    ent           = ent or self:GetEntity()
     local oldMass = ent._mass or 0 -- The 'or 0' handles cases of ents connected before they had a physObj
     local massDelta = newMass - oldMass
 
